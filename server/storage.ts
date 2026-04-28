@@ -9,9 +9,9 @@ import {
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
-// On Render, use the persistent disk mount at /data; fallback to local for dev
-const DB_PATH = process.env.NODE_ENV === "production" && process.env.RENDER
-  ? "/data/prime_vitality.db"
+// On Render free tier, /data doesn't exist (paid plans only) — use /tmp which always exists
+const DB_PATH = process.env.NODE_ENV === "production"
+  ? "/tmp/prime_vitality.db"
   : "prime_vitality.db";
 const sqlite = new Database(DB_PATH);
 export const db = drizzle(sqlite);
