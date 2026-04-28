@@ -133,8 +133,8 @@ export function registerRoutes(httpServer: any, app: Express) {
         payment_method_types: ["card"],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
-        success_url: `${process.env.FRONTEND_URL || req.headers.origin}/?subscription=success&plan=${plan}`,
-        cancel_url: `${process.env.FRONTEND_URL || req.headers.origin}/?subscription=cancelled`,
+        success_url: `${(process.env.FRONTEND_URL || req.headers.origin || "").replace(/\/+$/, "")}/#/subscription/success?plan=${plan}`,
+        cancel_url: `${(process.env.FRONTEND_URL || req.headers.origin || "").replace(/\/+$/, "")}/#/subscription/cancelled`,
         metadata: { userId: String(user.id), plan }
       });
 
@@ -152,7 +152,7 @@ export function registerRoutes(httpServer: any, app: Express) {
     try {
       const session = await stripe.billingPortal.sessions.create({
         customer: user.stripeCustomerId,
-        return_url: `${process.env.FRONTEND_URL || req.headers.origin}/#/dashboard`,
+        return_url: `${(process.env.FRONTEND_URL || req.headers.origin || "").replace(/\/+$/, "")}/#/`,
       });
       res.json({ url: session.url });
     } catch (e: any) {

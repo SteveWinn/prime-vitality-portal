@@ -3,9 +3,7 @@
   publish = "dist/public"
 
 [build.environment]
-  # Set this to your Render backend URL after deploying to Render
-  # e.g. VITE_API_URL = "https://prime-vitality-portal.onrender.com"
-  VITE_API_URL = ""
+  VITE_API_URL = "https://prime-vitality-portal.onrender.com"
 
 [[redirects]]
   from = "/*"
