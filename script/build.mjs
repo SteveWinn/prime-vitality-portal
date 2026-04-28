@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const allowlist = [
   "bcryptjs",
-  "better-sqlite3",
+  // better-sqlite3 is a native C++ addon — must NOT be bundled, keep external
   "cors",
   "date-fns",
   "drizzle-orm",
