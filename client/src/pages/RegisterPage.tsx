@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import type { AppUser } from "../App";
-import { Activity, CheckCircle2 } from "lucide-react";
+import { Activity, CheckCircle2, ArrowRight } from "lucide-react";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, "First name required"),
@@ -72,43 +72,66 @@ export default function RegisterPage({ onLogin }: { onLogin: (token: string, use
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="auth-bg">
+      <div className="w-full max-w-md space-y-7">
+
         {/* Logo */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <Activity className="w-6 h-6 text-white" />
+            <div className="logo-mark">
+              <Activity className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold">
-              Prime <span className="text-primary">Vitality</span>
+            <span className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+              Prime <span style={{ color: "hsl(0 55% 22%)" }}>Vitality</span>
             </span>
           </div>
-          <p className="text-muted-foreground text-sm">Patient Portal</p>
+          <p className="text-muted-foreground font-medium uppercase tracking-widest" style={{ fontSize: "0.68rem" }}>
+            Patient Portal
+          </p>
         </div>
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2">
           {steps.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                i < step ? "bg-primary text-white" :
-                i === step ? "bg-primary text-white ring-2 ring-primary/30" :
-                "bg-muted text-muted-foreground"
-              }`}>
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  i < step
+                    ? "text-white"
+                    : i === step
+                    ? "text-white ring-4"
+                    : "text-muted-foreground"
+                }`}
+                style={{
+                  background: i <= step ? "hsl(0 55% 22%)" : "hsl(var(--muted))",
+                  ringColor: i === step ? "hsl(0 55% 22% / 0.2)" : undefined,
+                  boxShadow: i === step ? "0 0 0 3px hsl(0 55% 22% / 0.18)" : undefined,
+                }}
+              >
                 {i < step ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
               </div>
-              <span className={`text-xs hidden sm:block ${i === step ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs hidden sm:block font-medium ${
+                  i === step ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
                 {label}
               </span>
-              {i < steps.length - 1 && <div className={`w-8 h-px ${i < step ? "bg-primary" : "bg-border"}`} />}
+              {i < steps.length - 1 && (
+                <div
+                  className="w-8 h-px transition-colors"
+                  style={{ background: i < step ? "hsl(0 55% 22%)" : "hsl(var(--border))" }}
+                />
+              )}
             </div>
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{steps[step]}</CardTitle>
+        <Card className="shadow-[0_4px_24px_rgba(15,21,35,0.10)] border-border/60">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl" style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800 }}>
+              {steps[step]}
+            </CardTitle>
             <CardDescription>
               {step === 0 && "Tell us about yourself"}
               {step === 1 && "How can we reach you?"}
@@ -117,51 +140,112 @@ export default function RegisterPage({ onLogin }: { onLogin: (token: string, use
           </CardHeader>
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
               {/* Step 0 — Name + Email */}
               {step === 0 && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="John" autoFocus data-testid="input-firstname" {...form.register("firstName")} />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="firstName" className="text-sm font-semibold text-foreground/80">First Name</Label>
+                      <Input
+                        id="firstName"
+                        placeholder="John"
+                        autoFocus
+                        data-testid="input-firstname"
+                        className="h-11 bg-background/60"
+                        {...form.register("firstName")}
+                      />
                       {form.formState.errors.firstName && (
                         <p className="text-destructive text-xs">{form.formState.errors.firstName.message}</p>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Smith" data-testid="input-lastname" {...form.register("lastName")} />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="lastName" className="text-sm font-semibold text-foreground/80">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Smith"
+                        data-testid="input-lastname"
+                        className="h-11 bg-background/60"
+                        {...form.register("lastName")}
+                      />
                       {form.formState.errors.lastName && (
                         <p className="text-destructive text-xs">{form.formState.errors.lastName.message}</p>
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" data-testid="input-email" {...form.register("email")} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-sm font-semibold text-foreground/80">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      data-testid="input-email"
+                      className="h-11 bg-background/60"
+                      {...form.register("email")}
+                    />
                     {form.formState.errors.email && (
                       <p className="text-destructive text-xs">{form.formState.errors.email.message}</p>
                     )}
                   </div>
-                  <Button type="button" className="w-full" onClick={nextStep}>Continue</Button>
+                  <Button
+                    type="button"
+                    className="w-full h-11 font-bold gap-2"
+                    style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}
+                    onClick={nextStep}
+                  >
+                    Continue <ArrowRight className="w-4 h-4" />
+                  </Button>
                 </>
               )}
 
               {/* Step 1 — Phone + DOB */}
               {step === 1 && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="phone" type="tel" autoComplete="tel" placeholder="(801) 555-0100" data-testid="input-phone" {...form.register("phone")} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone" className="text-sm font-semibold text-foreground/80">
+                      Phone Number <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="(801) 555-0100"
+                      data-testid="input-phone"
+                      className="h-11 bg-background/60"
+                      {...form.register("phone")}
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="dateOfBirth" type="date" data-testid="input-dob" {...form.register("dateOfBirth")} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-foreground/80">
+                      Date of Birth <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      data-testid="input-dob"
+                      className="h-11 bg-background/60"
+                      {...form.register("dateOfBirth")}
+                    />
                     <p className="text-xs text-muted-foreground">Used by your provider to confirm your identity</p>
                   </div>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(0)}>Back</Button>
-                    <Button type="button" className="flex-1" onClick={nextStep}>Continue</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 h-11"
+                      onClick={() => setStep(0)}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 h-11 font-bold gap-2"
+                      style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}
+                      onClick={nextStep}
+                    >
+                      Continue <ArrowRight className="w-4 h-4" />
+                    </Button>
                   </div>
                 </>
               )}
@@ -169,26 +253,55 @@ export default function RegisterPage({ onLogin }: { onLogin: (token: string, use
               {/* Step 2 — Password */}
               {step === 2 && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" autoComplete="new-password" placeholder="Min 8 characters" data-testid="input-password" {...form.register("password")} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password" className="text-sm font-semibold text-foreground/80">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Min 8 characters"
+                      data-testid="input-password"
+                      className="h-11 bg-background/60"
+                      {...form.register("password")}
+                    />
                     {form.formState.errors.password && (
                       <p className="text-destructive text-xs">{form.formState.errors.password.message}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" type="password" autoComplete="new-password" placeholder="Re-enter password" data-testid="input-confirm-password" {...form.register("confirmPassword")} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground/80">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Re-enter password"
+                      data-testid="input-confirm-password"
+                      className="h-11 bg-background/60"
+                      {...form.register("confirmPassword")}
+                    />
                     {form.formState.errors.confirmPassword && (
                       <p className="text-destructive text-xs">{form.formState.errors.confirmPassword.message}</p>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                    Your data is encrypted and HIPAA-compliant. We will never share your information without your consent.
-                  </p>
+                  <div className="bg-muted/60 border border-border/50 rounded-xl p-3.5 text-xs text-muted-foreground leading-relaxed">
+                    🔒 Your data is encrypted and HIPAA-compliant. We will never share your information without your consent.
+                  </div>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
-                    <Button type="submit" className="flex-1" disabled={loading} data-testid="button-register">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 h-11"
+                      onClick={() => setStep(1)}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 h-11 font-bold"
+                      style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}
+                      disabled={loading}
+                      data-testid="button-register"
+                    >
                       {loading ? "Creating account…" : "Create Account"}
                     </Button>
                   </div>
@@ -196,9 +309,13 @@ export default function RegisterPage({ onLogin }: { onLogin: (token: string, use
               )}
             </form>
 
-            <div className="mt-4 text-center text-sm text-muted-foreground">
+            <div className="mt-5 pt-4 border-t border-border/50 text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <button onClick={() => setLocation("/login")} className="text-primary hover:underline font-medium">
+              <button
+                onClick={() => setLocation("/login")}
+                className="font-semibold hover:underline"
+                style={{ color: "hsl(24 58% 51%)" }}
+              >
                 Sign in
               </button>
             </div>

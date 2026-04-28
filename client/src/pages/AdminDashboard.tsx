@@ -190,38 +190,59 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shrink-0">
-        <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+      {/* ── Sidebar ── */}
+      <aside className="w-64 flex flex-col shrink-0" style={{
+        background: "hsl(0 55% 22%)",
+        color: "hsl(0 0% 96%)",
+        borderRight: "1px solid hsl(0 45% 27%)",
+        boxShadow: "2px 0 16px rgba(90,26,26,0.18)",
+      }}>
+
+        {/* Logo */}
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-mark">
+            <Activity className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <div className="font-extrabold text-sm leading-tight text-white" style={{ fontFamily: "'Cabinet Grotesk', sans-serif", letterSpacing: "-0.01em" }}>
+              Prime Vitality
             </div>
-            <div>
-              <div className="font-bold text-sm leading-tight">Prime Vitality</div>
-              <div className="text-xs text-sidebar-foreground/60 flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Admin Panel
-              </div>
+            <div className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "hsl(0 0% 96% / 0.55)" }}>
+              <Shield className="w-3 h-3" /> Admin Panel
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1" data-testid="nav-admin-sidebar">
+        <nav className="flex-1 px-3 py-4 space-y-0.5" data-testid="nav-admin-sidebar">
           {navItems.map(item => (
             <button
               key={item.id}
               data-testid={`nav-admin-${item.id}`}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                activeTab === item.id
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all"
+              style={{
+                background: activeTab === item.id ? "hsl(24 58% 51%)" : "transparent",
+                color: activeTab === item.id ? "white" : "hsl(0 0% 96% / 0.65)",
+                fontWeight: activeTab === item.id ? 700 : 400,
+                boxShadow: activeTab === item.id ? "0 2px 8px hsl(24 58% 51% / 0.4)" : "none",
+              }}
+              onMouseEnter={e => {
+                if (activeTab !== item.id) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "hsl(0 45% 28%)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96%)";
+                }
+              }}
+              onMouseLeave={e => {
+                if (activeTab !== item.id) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96% / 0.65)";
+                }
+              }}
             >
               <item.icon className="w-4 h-4 shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge ? (
-                <span className="bg-primary text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                <span className="text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center font-bold" style={{ background: "hsl(24 58% 51%)", color: "white" }}>
                   {item.badge}
                 </span>
               ) : null}
@@ -229,25 +250,33 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary" />
+        {/* User footer */}
+        <div className="px-3 pb-4 pt-3" style={{ borderTop: "1px solid hsl(0 45% 27%)" }}>
+          <div className="flex items-center gap-3 mb-2.5 px-1">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsl(0 0% 96% / 0.12)" }}>
+              <Shield className="w-4 h-4" style={{ color: "hsl(0 0% 96% / 0.8)" }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{user.firstName} {user.lastName}</div>
-              <div className="text-xs text-sidebar-foreground/60">Administrator</div>
+              <div className="text-sm font-semibold truncate text-white">{user.firstName} {user.lastName}</div>
+              <div className="text-xs" style={{ color: "hsl(0 0% 96% / 0.5)" }}>Administrator</div>
             </div>
           </div>
-          <Button
+          <button
             data-testid="button-admin-logout"
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground gap-2"
             onClick={onLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all"
+            style={{ color: "hsl(0 0% 96% / 0.55)" }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "hsl(0 45% 28%)";
+              (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96%)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96% / 0.55)";
+            }}
           >
             <LogOut className="w-4 h-4" /> Sign Out
-          </Button>
+          </button>
         </div>
       </aside>
 
@@ -259,25 +288,25 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           {activeTab === "overview" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Admin Overview</h1>
+                <h1 className="text-xl font-extrabold page-heading">Admin Overview</h1>
                 <p className="text-sm text-muted-foreground mt-1">Prime Vitality practice dashboard</p>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Patients", value: patients?.length ?? "—", icon: Users, color: "bg-blue-50 text-blue-600" },
-                  { label: "Active Plans", value: patients?.filter(p => p.subscriptionStatus === "active").length ?? "—", icon: CheckCircle, color: "bg-green-50 text-green-600" },
-                  { label: "Pending Appts", value: pendingAppts.length, icon: Calendar, color: "bg-amber-50 text-amber-600" },
-                  { label: "Unread Messages", value: unreadMessages.length, icon: MessageSquare, color: "bg-red-50 text-red-600" },
+                  { label: "Total Patients",   value: patients?.length ?? "—", icon: Users,        bg: "bg-blue-50",    iconCls: "text-blue-600" },
+                  { label: "Active Plans",     value: patients?.filter(p => p.subscriptionStatus === "active").length ?? "—", icon: CheckCircle, bg: "bg-emerald-50", iconCls: "text-emerald-600" },
+                  { label: "Pending Appts",    value: pendingAppts.length,     icon: Calendar,      bg: "bg-amber-50",   iconCls: "text-amber-600" },
+                  { label: "Unread Messages",  value: unreadMessages.length,   icon: MessageSquare, bg: "bg-red-50",     iconCls: "text-red-500" },
                 ].map((stat, i) => (
-                  <Card key={i} data-testid={`card-stat-${i}`}>
+                  <Card key={i} data-testid={`card-stat-${i}`} className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] hover:shadow-[0_4px_16px_rgba(15,21,35,0.10)] transition-shadow border-border/60">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.color}`}>
-                          <stat.icon className="w-5 h-5" />
+                        <div className={`stat-icon ${stat.bg}`}>
+                          <stat.icon className={`w-5 h-5 ${stat.iconCls}`} />
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">{stat.label}</p>
-                          <p className="text-lg font-bold">{stat.value}</p>
+                          <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                          <p className="text-lg font-extrabold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>{stat.value}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -287,9 +316,9 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
               {/* Recent activity */}
               {pendingAppts.length > 0 && (
-                <Card>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center gap-2" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
                       <AlertCircle className="w-4 h-4 text-amber-500" /> Appointments Needing Confirmation
                     </CardTitle>
                   </CardHeader>
@@ -297,7 +326,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                     {pendingAppts.slice(0, 5).map(appt => {
                       const patient = patients?.find(p => p.id === appt.patientId);
                       return (
-                        <div key={appt.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div key={appt.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border/40">
                           <div>
                             <p className="text-sm font-medium">
                               {patient ? `${patient.firstName} ${patient.lastName}` : `Patient #${appt.patientId}`}
@@ -338,7 +367,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Patients</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Patients</h1>
                   <p className="text-sm text-muted-foreground mt-1">{patients?.length ?? 0} registered patients</p>
                 </div>
               </div>
@@ -350,7 +379,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   placeholder="Search by name or email..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11"
                 />
               </div>
 
@@ -359,16 +388,16 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
               ) : filteredPatients.length > 0 ? (
                 <div className="space-y-2">
                   {filteredPatients.map(patient => (
-                    <Card key={patient.id} data-testid={`card-patient-${patient.id}`} className="hover:border-primary/30 transition-colors cursor-pointer"
+                    <Card key={patient.id} data-testid={`card-patient-${patient.id}`} className="shadow-[0_1px_4px_rgba(15,21,35,0.06)] hover:shadow-[0_4px_12px_rgba(15,21,35,0.09)] hover:border-primary/30 transition-all border-border/60 cursor-pointer"
                       onClick={() => { setSelectedPatient(patient); setPatientDetailOpen(true); }}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "hsl(0 55% 22% / 0.10)" }}>
                               <User className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{patient.firstName} {patient.lastName}</p>
+                              <p className="text-sm font-semibold">{patient.firstName} {patient.lastName}</p>
                               <p className="text-xs text-muted-foreground">{patient.email}</p>
                             </div>
                           </div>
@@ -399,7 +428,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Messages</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Messages</h1>
                   <p className="text-sm text-muted-foreground mt-1">Patient communications</p>
                 </div>
                 <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
@@ -499,7 +528,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           {activeTab === "appointments" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Appointments</h1>
+                <h1 className="text-xl font-extrabold page-heading">Appointments</h1>
                 <p className="text-sm text-muted-foreground mt-1">All scheduled consultations</p>
               </div>
 
@@ -594,7 +623,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Upload Lab Results</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Upload Lab Results</h1>
                   <p className="text-sm text-muted-foreground mt-1">Add lab results to a patient's record</p>
                 </div>
                 <Dialog open={labOpen} onOpenChange={setLabOpen}>
@@ -686,7 +715,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Treatment Plans</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Treatment Plans</h1>
                   <p className="text-sm text-muted-foreground mt-1">Create and manage patient TRT protocols</p>
                 </div>
                 <Dialog open={treatOpen} onOpenChange={setTreatOpen}>

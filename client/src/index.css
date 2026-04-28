@@ -1,41 +1,60 @@
+/* Cabinet Grotesk + Satoshi — must come BEFORE @tailwind to avoid PostCSS warning */
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap');
-
 @layer base {
   :root {
     /* Prime Vitality — Crimson + warm orange accent */
-    --background: 20 14% 97%;
-    --foreground: 0 10% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 10% 10%;
+    /* Matches marketing site: bg #f5f6f8, primary #5a1a1a, accent #c8723a */
+
+    --background: 220 14% 96%;        /* #f5f6f8 warm near-white */
+    --foreground: 220 25% 9%;         /* #0f1523 near-black */
+
+    --card: 0 0% 100%;                /* pure white cards */
+    --card-foreground: 220 25% 9%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 10% 10%;
-    --primary: 0 55% 22%;
+    --popover-foreground: 220 25% 9%;
+
+    --primary: 0 55% 22%;             /* #5a1a1a deep crimson */
     --primary-foreground: 0 0% 100%;
-    --secondary: 20 20% 94%;
+
+    --secondary: 20 18% 93%;          /* warm off-white */
     --secondary-foreground: 0 10% 20%;
-    --muted: 20 15% 94%;
-    --muted-foreground: 0 8% 46%;
-    --accent: 24 78% 50%;
+
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 10% 42%;
+
+    --accent: 24 58% 51%;             /* #c8723a warm orange */
     --accent-foreground: 0 0% 100%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 20 15% 88%;
-    --input: 20 15% 88%;
-    --ring: 24 78% 50%;
-    --radius: 0.5rem;
+
+    --border: 220 15% 87%;
+    --input: 220 15% 87%;
+    --ring: 24 58% 51%;               /* orange focus ring */
+
+    --radius: 0.625rem;               /* ~10px — matches marketing site's --radius-lg feel */
+
+    /* Sidebar — deep crimson matching marketing primary */
     --sidebar: 0 55% 22%;
     --sidebar-background: 0 55% 22%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 24 78% 55%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 24 58% 56%;    /* orange active item */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 45% 28%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 45% 28%;
-    --sidebar-ring: 24 78% 50%;
+    --sidebar-accent: 0 45% 28%;      /* slightly lighter crimson for hover */
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 45% 27%;
+    --sidebar-ring: 24 58% 51%;
+
+    /* Marketing-matched shadows */
+    --shadow-sm: 0 1px 3px rgba(15, 21, 35, 0.07);
+    --shadow-md: 0 4px 16px rgba(15, 21, 35, 0.09);
+    --shadow-lg: 0 12px 40px rgba(15, 21, 35, 0.13);
   }
 
   .dark {
@@ -51,34 +70,154 @@
     --secondary-foreground: 20 10% 85%;
     --muted: 0 12% 18%;
     --muted-foreground: 0 8% 55%;
-    --accent: 24 80% 58%;
+    --accent: 24 65% 55%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 12% 22%;
     --input: 0 12% 22%;
-    --ring: 24 80% 58%;
+    --ring: 24 65% 55%;
     --sidebar: 0 16% 10%;
     --sidebar-background: 0 16% 10%;
     --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 24 80% 58%;
+    --sidebar-primary: 24 65% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 12% 16%;
     --sidebar-accent-foreground: 0 0% 92%;
     --sidebar-border: 0 12% 18%;
-    --sidebar-ring: 24 80% 58%;
+    --sidebar-ring: 24 65% 55%;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 }
 
 @layer base {
-  * { @apply border-border; }
+  * {
+    @apply border-border;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Satoshi', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cabinet Grotesk', 'Helvetica Neue', sans-serif;
     font-weight: 700;
+    line-height: 1.2;
+  }
+}
+
+@layer components {
+  /* ── Cards: richer shadow + subtle border matching marketing site ── */
+  .card-polished {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) + 2px);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-polished:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ── Section page headings (matches marketing h2 treatment) ── */
+  .page-heading {
+    font-family: 'Cabinet Grotesk', 'Helvetica Neue', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: hsl(var(--foreground));
+  }
+
+  /* ── Quick-action card pill ── */
+  .quick-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: calc(var(--radius) + 4px);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-sm);
+    transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: left;
+    cursor: pointer;
+  }
+  .quick-action:hover {
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--primary) / 0.25);
+    transform: translateY(-1px);
+  }
+
+  /* ── Stat icon badge ── */
+  .stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: calc(var(--radius) + 2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Auth page wrapper ── */
+  .auth-bg {
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, hsl(0 55% 22% / 0.06) 0%, transparent 70%),
+      hsl(var(--background));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  /* ── Logo wordmark ── */
+  .logo-mark {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: hsl(var(--primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px hsl(0 55% 22% / 0.35);
+    flex-shrink: 0;
+  }
+
+  /* ── Sidebar logo area ── */
+  .sidebar-logo {
+    padding: 1.25rem 1.25rem 1rem;
+    border-bottom: 1px solid hsl(var(--sidebar-border));
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .sidebar-logo-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    background: hsl(var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px hsl(24 58% 51% / 0.45);
+    flex-shrink: 0;
+  }
+
+  /* ── Pill badge (matches marketing .badge-pill) ── */
+  .pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
   }
 }

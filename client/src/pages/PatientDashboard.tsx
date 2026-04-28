@@ -5,7 +5,6 @@ import { AppUser } from "../App";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -26,40 +25,43 @@ interface PatientDashboardProps {
   onUpdateUser: (u: AppUser) => void;
 }
 
-const PLAN_INFO: Record<string, { label: string; price: string; color: string; features: string[] }> = {
+const PLAN_INFO: Record<string, { label: string; price: string; color: string; bgColor: string; features: string[] }> = {
   starter: {
     label: "Starter",
     price: "$149/mo",
-    color: "bg-blue-100 text-blue-800",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50 border-blue-100",
     features: ["Monthly TRT consultation", "Basic lab panel", "Secure messaging", "Standard shipping"],
   },
   optimized: {
     label: "Optimized",
     price: "$249/mo",
-    color: "bg-primary/10 text-primary",
+    color: "text-primary",
+    bgColor: "bg-primary/8 border-primary/15",
     features: ["Bi-weekly consultations", "Comprehensive lab panel", "Priority messaging", "Expedited shipping", "Nutrition guidance"],
   },
   elite: {
     label: "Elite",
     price: "$399/mo",
-    color: "bg-amber-100 text-amber-800",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50 border-amber-100",
     features: ["Weekly consultations", "Full hormone panel + peptides", "24/7 priority access", "Same-day shipping", "Personalized protocol", "Body composition tracking"],
   },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon: JSX.Element }> = {
-    active: { label: "Active", cls: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3" /> },
-    inactive: { label: "Inactive", cls: "bg-gray-100 text-gray-600", icon: <Clock className="w-3 h-3" /> },
-    cancelled: { label: "Cancelled", cls: "bg-red-100 text-red-700", icon: <XCircle className="w-3 h-3" /> },
-    past_due: { label: "Past Due", cls: "bg-amber-100 text-amber-700", icon: <AlertCircle className="w-3 h-3" /> },
-    requested: { label: "Requested", cls: "bg-blue-100 text-blue-700", icon: <Clock className="w-3 h-3" /> },
-    confirmed: { label: "Confirmed", cls: "bg-green-100 text-green-700", icon: <CheckCircle className="w-3 h-3" /> },
-    completed: { label: "Completed", cls: "bg-gray-100 text-gray-600", icon: <CheckCircle className="w-3 h-3" /> },
+    active:    { label: "Active",     cls: "bg-emerald-50 text-emerald-700 border border-emerald-200",   icon: <CheckCircle className="w-3 h-3" /> },
+    inactive:  { label: "Inactive",   cls: "bg-gray-100 text-gray-500 border border-gray-200",           icon: <Clock className="w-3 h-3" /> },
+    cancelled: { label: "Cancelled",  cls: "bg-red-50 text-red-600 border border-red-200",               icon: <XCircle className="w-3 h-3" /> },
+    past_due:  { label: "Past Due",   cls: "bg-amber-50 text-amber-700 border border-amber-200",         icon: <AlertCircle className="w-3 h-3" /> },
+    requested: { label: "Requested",  cls: "bg-blue-50 text-blue-600 border border-blue-200",            icon: <Clock className="w-3 h-3" /> },
+    confirmed: { label: "Confirmed",  cls: "bg-emerald-50 text-emerald-700 border border-emerald-200",   icon: <CheckCircle className="w-3 h-3" /> },
+    completed: { label: "Completed",  cls: "bg-gray-100 text-gray-500 border border-gray-200",           icon: <CheckCircle className="w-3 h-3" /> },
   };
-  const s = map[status] ?? { label: status, cls: "bg-gray-100 text-gray-600", icon: <Clock className="w-3 h-3" /> };
+  const s = map[status] ?? { label: status, cls: "bg-gray-100 text-gray-500 border border-gray-200", icon: <Clock className="w-3 h-3" /> };
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${s.cls}`}>
       {s.icon} {s.label}
     </span>
   );
@@ -148,49 +150,74 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
   const upcomingAppts = appointments?.filter(a => a.status !== "completed" && a.status !== "cancelled") ?? [];
 
   const navItems = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "labs", label: "Lab Results", icon: FlaskConical },
-    { id: "messages", label: "Messages", icon: MessageSquare, badge: unreadCount },
-    { id: "appointments", label: "Appointments", icon: Calendar },
-    { id: "treatment", label: "Treatment Plan", icon: Pill },
-    { id: "subscription", label: "Subscription", icon: CreditCard },
-    { id: "telehealth", label: "Video Visit", icon: Video },
+    { id: "overview",     label: "Overview",       icon: LayoutDashboard },
+    { id: "labs",         label: "Lab Results",    icon: FlaskConical },
+    { id: "messages",     label: "Messages",       icon: MessageSquare, badge: unreadCount },
+    { id: "appointments", label: "Appointments",   icon: Calendar },
+    { id: "treatment",    label: "Treatment Plan", icon: Pill },
+    { id: "subscription", label: "Subscription",   icon: CreditCard },
+    { id: "telehealth",   label: "Video Visit",    icon: Video },
   ];
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shrink-0">
+
+      {/* ── Sidebar ── */}
+      <aside className="w-64 flex flex-col shrink-0" style={{
+        background: "hsl(0 55% 22%)",
+        color: "hsl(0 0% 96%)",
+        borderRight: "1px solid hsl(0 45% 27%)",
+        boxShadow: "2px 0 16px rgba(90,26,26,0.18)",
+      }}>
+
         {/* Logo */}
-        <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-mark">
+            <Activity className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <div className="font-extrabold text-sm leading-tight text-white" style={{ fontFamily: "'Cabinet Grotesk', sans-serif", letterSpacing: "-0.01em" }}>
+              Prime Vitality
             </div>
-            <div>
-              <div className="font-bold text-sm leading-tight">Prime Vitality</div>
-              <div className="text-xs text-sidebar-foreground/60">Patient Portal</div>
-            </div>
+            <div className="text-xs mt-0.5" style={{ color: "hsl(0 0% 96% / 0.55)" }}>Patient Portal</div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1" data-testid="nav-sidebar">
+        <nav className="flex-1 px-3 py-4 space-y-0.5" data-testid="nav-sidebar">
           {navItems.map(item => (
             <button
               key={item.id}
               data-testid={`nav-${item.id}`}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                activeTab === item.id
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all"
+              style={{
+                background: activeTab === item.id
+                  ? "hsl(24 58% 51%)"
+                  : "transparent",
+                color: activeTab === item.id
+                  ? "white"
+                  : "hsl(0 0% 96% / 0.65)",
+                fontWeight: activeTab === item.id ? 700 : 400,
+                boxShadow: activeTab === item.id ? "0 2px 8px hsl(24 58% 51% / 0.4)" : "none",
+              }}
+              onMouseEnter={e => {
+                if (activeTab !== item.id) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "hsl(0 45% 28%)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96%)";
+                }
+              }}
+              onMouseLeave={e => {
+                if (activeTab !== item.id) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96% / 0.65)";
+                }
+              }}
             >
               <item.icon className="w-4 h-4 shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge ? (
-                <span className="bg-primary text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                <span className="text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center font-bold" style={{ background: "hsl(24 58% 51%)", color: "white" }}>
                   {item.badge}
                 </span>
               ) : null}
@@ -199,29 +226,36 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
         </nav>
 
         {/* User footer */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
+        <div className="px-3 pb-4 pt-3" style={{ borderTop: "1px solid hsl(0 45% 27%)" }}>
+          <div className="flex items-center gap-3 mb-2.5 px-1">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsl(0 0% 96% / 0.12)" }}>
+              <User className="w-4 h-4" style={{ color: "hsl(0 0% 96% / 0.8)" }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{user.firstName} {user.lastName}</div>
-              <div className="text-xs text-sidebar-foreground/60 truncate">{user.email}</div>
+              <div className="text-sm font-semibold truncate text-white">{user.firstName} {user.lastName}</div>
+              <div className="text-xs truncate" style={{ color: "hsl(0 0% 96% / 0.5)" }}>{user.email}</div>
             </div>
           </div>
-          <Button
+          <button
             data-testid="button-logout"
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground gap-2"
             onClick={onLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all"
+            style={{ color: "hsl(0 0% 96% / 0.55)" }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "hsl(0 45% 28%)";
+              (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96%)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "hsl(0 0% 96% / 0.55)";
+            }}
           >
             <LogOut className="w-4 h-4" /> Sign Out
-          </Button>
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* ── Main content ── */}
       <main className="flex-1 overflow-auto">
         <div className="max-w-5xl mx-auto p-8">
 
@@ -229,85 +263,84 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           {activeTab === "overview" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold text-foreground">Welcome back, {user.firstName}</h1>
+                <h1 className="text-xl font-extrabold text-foreground page-heading">
+                  Welcome back, {user.firstName}
+                </h1>
                 <p className="text-sm text-muted-foreground mt-1">Here's a summary of your care</p>
               </div>
 
               {/* Status cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card data-testid="card-subscription-status">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-primary" />
+                {[
+                  {
+                    testId: "card-subscription-status",
+                    icon: <CreditCard className="w-5 h-5 text-primary" />,
+                    bg: "bg-primary/8",
+                    label: "Plan",
+                    value: activePlan ? activePlan.label : "No Plan",
+                  },
+                  {
+                    testId: "card-subscription-status2",
+                    icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
+                    bg: "bg-emerald-50",
+                    label: "Status",
+                    valueBadge: user.subscriptionStatus ?? "inactive",
+                  },
+                  {
+                    testId: "card-messages-count",
+                    icon: <MessageSquare className="w-5 h-5 text-blue-600" />,
+                    bg: "bg-blue-50",
+                    label: "Messages",
+                    value: unreadCount > 0 ? `${unreadCount} unread` : "Up to date",
+                  },
+                  {
+                    testId: "card-appointments-count",
+                    icon: <Calendar className="w-5 h-5 text-amber-600" />,
+                    bg: "bg-amber-50",
+                    label: "Appointments",
+                    value: `${upcomingAppts.length} upcoming`,
+                  },
+                ].map(card => (
+                  <Card
+                    key={card.testId}
+                    data-testid={card.testId}
+                    className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] hover:shadow-[0_4px_16px_rgba(15,21,35,0.10)] transition-shadow border-border/60"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`stat-icon ${card.bg}`}>
+                          {card.icon}
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">{card.label}</p>
+                          {card.valueBadge ? (
+                            <div className="mt-0.5">
+                              <StatusBadge status={card.valueBadge} />
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-foreground">{card.value}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Plan</p>
-                        <p className="text-sm font-semibold">
-                          {activePlan ? activePlan.label : "No Plan"}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card data-testid="card-subscription-status2">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Status</p>
-                        <StatusBadge status={user.subscriptionStatus ?? "inactive"} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card data-testid="card-messages-count">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <MessageSquare className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Messages</p>
-                        <p className="text-sm font-semibold">{unreadCount > 0 ? `${unreadCount} unread` : "Up to date"}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card data-testid="card-appointments-count">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Appointments</p>
-                        <p className="text-sm font-semibold">{upcomingAppts.length} upcoming</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
               {/* Active treatment plan snippet */}
               {activeTreatment && (
-                <Card>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center gap-2" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
                       <Pill className="w-4 h-4 text-primary" /> Current Treatment Protocol
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
-                      <p className="font-medium">{activeTreatment.title}</p>
+                      <p className="font-semibold">{activeTreatment.title}</p>
                       <p className="text-muted-foreground">{activeTreatment.dosing}</p>
                       {activeTreatment.nextLabDate && (
-                        <p className="text-muted-foreground">Next labs: <span className="text-foreground font-medium">{activeTreatment.nextLabDate}</span></p>
+                        <p className="text-muted-foreground">Next labs: <span className="text-foreground font-semibold">{activeTreatment.nextLabDate}</span></p>
                       )}
                     </div>
                   </CardContent>
@@ -316,42 +349,43 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
 
               {/* Quick actions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button
-                  data-testid="button-quick-compose"
-                  onClick={() => { setActiveTab("messages"); setComposeOpen(true); }}
-                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-colors text-left"
-                >
-                  <MessageSquare className="w-5 h-5 text-primary shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">Message Care Team</p>
-                    <p className="text-xs text-muted-foreground">Secure messaging</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
-                </button>
-                <button
-                  data-testid="button-quick-appointment"
-                  onClick={() => { setActiveTab("appointments"); setApptOpen(true); }}
-                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-colors text-left"
-                >
-                  <Calendar className="w-5 h-5 text-primary shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">Request Appointment</p>
-                    <p className="text-xs text-muted-foreground">Schedule a visit</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
-                </button>
-                <button
-                  data-testid="button-quick-video"
-                  onClick={() => setActiveTab("telehealth")}
-                  className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-colors text-left"
-                >
-                  <Video className="w-5 h-5 text-primary shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">Join Video Visit</p>
-                    <p className="text-xs text-muted-foreground">via Doxy.me</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
-                </button>
+                {[
+                  {
+                    testId: "button-quick-compose",
+                    icon: <MessageSquare className="w-5 h-5 text-primary shrink-0" />,
+                    title: "Message Care Team",
+                    sub: "Secure messaging",
+                    onClick: () => { setActiveTab("messages"); setComposeOpen(true); },
+                  },
+                  {
+                    testId: "button-quick-appointment",
+                    icon: <Calendar className="w-5 h-5 text-primary shrink-0" />,
+                    title: "Request Appointment",
+                    sub: "Schedule a visit",
+                    onClick: () => { setActiveTab("appointments"); setApptOpen(true); },
+                  },
+                  {
+                    testId: "button-quick-video",
+                    icon: <Video className="w-5 h-5 text-primary shrink-0" />,
+                    title: "Join Video Visit",
+                    sub: "via Doxy.me",
+                    onClick: () => setActiveTab("telehealth"),
+                  },
+                ].map(action => (
+                  <button
+                    key={action.testId}
+                    data-testid={action.testId}
+                    onClick={action.onClick}
+                    className="quick-action group"
+                  >
+                    {action.icon}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{action.title}</p>
+                      <p className="text-xs text-muted-foreground">{action.sub}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -360,7 +394,7 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           {activeTab === "labs" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Lab Results</h1>
+                <h1 className="text-xl font-extrabold page-heading">Lab Results</h1>
                 <p className="text-sm text-muted-foreground mt-1">Your most recent laboratory results from Prime Vitality</p>
               </div>
               {labsLoading ? (
@@ -371,11 +405,11 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                     let parsed: Record<string, string> = {};
                     try { parsed = JSON.parse(lab.results); } catch {}
                     return (
-                      <Card key={lab.id} data-testid={`card-lab-${lab.id}`}>
+                      <Card key={lab.id} data-testid={`card-lab-${lab.id}`} className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                         <CardHeader className="pb-2">
                           <div className="flex items-start justify-between">
                             <div>
-                              <CardTitle className="text-base">{lab.title}</CardTitle>
+                              <CardTitle className="text-base" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>{lab.title}</CardTitle>
                               <CardDescription>{lab.date}</CardDescription>
                             </div>
                             <Badge variant="outline" className="text-xs">
@@ -387,9 +421,9 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                           {Object.keys(parsed).length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                               {Object.entries(parsed).map(([k, v]) => (
-                                <div key={k} className="bg-muted/50 rounded-lg p-2">
+                                <div key={k} className="bg-muted/60 rounded-lg p-2.5 border border-border/40">
                                   <p className="text-xs text-muted-foreground">{k}</p>
-                                  <p className="text-sm font-medium">{v}</p>
+                                  <p className="text-sm font-semibold">{v}</p>
                                 </div>
                               ))}
                             </div>
@@ -401,11 +435,13 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                   })}
                 </div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <FlaskConical className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm font-medium">No lab results yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Your provider will upload results after your lab visit</p>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
+                  <CardContent className="py-14 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-4">
+                      <FlaskConical className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">No lab results yet</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Your provider will upload results after your lab visit</p>
                   </CardContent>
                 </Card>
               )}
@@ -417,44 +453,44 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Messages</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Messages</h1>
                   <p className="text-sm text-muted-foreground mt-1">Secure messaging with your care team</p>
                 </div>
                 <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
                   <DialogTrigger asChild>
-                    <Button data-testid="button-compose-message" size="sm">
-                      <Send className="w-4 h-4 mr-2" /> New Message
+                    <Button data-testid="button-compose-message" size="sm" className="gap-2 font-semibold shadow-sm">
+                      <Send className="w-4 h-4" /> New Message
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Message Your Care Team</DialogTitle>
+                      <DialogTitle style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>Message Your Care Team</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 mt-2">
                       <div>
-                        <Label>Subject</Label>
+                        <Label className="font-semibold text-foreground/80">Subject</Label>
                         <Input
                           data-testid="input-msg-subject"
                           value={msgSubject}
                           onChange={e => setMsgSubject(e.target.value)}
                           placeholder="e.g. Question about my dosage"
-                          className="mt-1"
+                          className="mt-1.5 h-11"
                         />
                       </div>
                       <div>
-                        <Label>Message</Label>
+                        <Label className="font-semibold text-foreground/80">Message</Label>
                         <Textarea
                           data-testid="input-msg-body"
                           value={msgBody}
                           onChange={e => setMsgBody(e.target.value)}
                           placeholder="Type your message here..."
                           rows={5}
-                          className="mt-1"
+                          className="mt-1.5"
                         />
                       </div>
                       <Button
                         data-testid="button-send-message"
-                        className="w-full"
+                        className="w-full font-bold"
                         disabled={!msgSubject || !msgBody || sendMessageMutation.isPending}
                         onClick={() => sendMessageMutation.mutate({ subject: msgSubject, body: msgBody })}
                       >
@@ -472,19 +508,27 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                   {messages.map(msg => {
                     const isFromMe = msg.fromUserId === user.id;
                     return (
-                      <Card key={msg.id} data-testid={`card-message-${msg.id}`} className={!msg.isRead && !isFromMe ? "border-primary/30 bg-primary/5" : ""}>
+                      <Card
+                        key={msg.id}
+                        data-testid={`card-message-${msg.id}`}
+                        className={`shadow-[0_1px_6px_rgba(15,21,35,0.06)] transition-shadow ${
+                          !msg.isRead && !isFromMe
+                            ? "border-primary/25 bg-primary/4"
+                            : "border-border/60"
+                        }`}
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium text-muted-foreground">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="text-xs font-semibold text-muted-foreground">
                                   {isFromMe ? "You → Care Team" : "Care Team → You"}
                                 </span>
                                 {!msg.isRead && !isFromMe && (
-                                  <span className="text-xs bg-primary text-white rounded-full px-1.5 py-0.5">New</span>
+                                  <span className="text-xs rounded-full px-1.5 py-0.5 font-bold" style={{ background: "hsl(24 58% 51%)", color: "white" }}>New</span>
                                 )}
                               </div>
-                              {msg.subject && <p className="text-sm font-medium">{msg.subject}</p>}
+                              {msg.subject && <p className="text-sm font-semibold">{msg.subject}</p>}
                               <p className="text-sm text-muted-foreground mt-1">{msg.body}</p>
                             </div>
                             <p className="text-xs text-muted-foreground shrink-0">
@@ -497,11 +541,13 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                   })}
                 </div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm font-medium">No messages yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Use the button above to contact your care team</p>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
+                  <CardContent className="py-14 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-4">
+                      <MessageSquare className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">No messages yet</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Use the button above to contact your care team</p>
                   </CardContent>
                 </Card>
               )}
@@ -513,24 +559,24 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">Appointments</h1>
+                  <h1 className="text-xl font-extrabold page-heading">Appointments</h1>
                   <p className="text-sm text-muted-foreground mt-1">Your telehealth consultations with Prime Vitality</p>
                 </div>
                 <Dialog open={apptOpen} onOpenChange={setApptOpen}>
                   <DialogTrigger asChild>
-                    <Button data-testid="button-request-appointment" size="sm">
-                      <Calendar className="w-4 h-4 mr-2" /> Request Appointment
+                    <Button data-testid="button-request-appointment" size="sm" className="gap-2 font-semibold shadow-sm">
+                      <Calendar className="w-4 h-4" /> Request Appointment
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Request an Appointment</DialogTitle>
+                      <DialogTitle style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>Request an Appointment</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 mt-2">
                       <div>
-                        <Label>Appointment Type</Label>
+                        <Label className="font-semibold text-foreground/80">Appointment Type</Label>
                         <Select value={apptType} onValueChange={setApptType}>
-                          <SelectTrigger data-testid="select-appt-type" className="mt-1">
+                          <SelectTrigger data-testid="select-appt-type" className="mt-1.5 h-11">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -541,29 +587,29 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                         </Select>
                       </div>
                       <div>
-                        <Label>Preferred Date & Time</Label>
+                        <Label className="font-semibold text-foreground/80">Preferred Date & Time</Label>
                         <Input
                           data-testid="input-appt-date"
                           type="datetime-local"
                           value={apptDate}
                           onChange={e => setApptDate(e.target.value)}
-                          className="mt-1"
+                          className="mt-1.5 h-11"
                         />
                       </div>
                       <div>
-                        <Label>Notes (optional)</Label>
+                        <Label className="font-semibold text-foreground/80">Notes (optional)</Label>
                         <Textarea
                           data-testid="input-appt-notes"
                           value={apptNotes}
                           onChange={e => setApptNotes(e.target.value)}
                           placeholder="Any specific concerns or questions..."
                           rows={3}
-                          className="mt-1"
+                          className="mt-1.5"
                         />
                       </div>
                       <Button
                         data-testid="button-submit-appointment"
-                        className="w-full"
+                        className="w-full font-bold"
                         disabled={!apptDate || requestApptMutation.isPending}
                         onClick={() => requestApptMutation.mutate({ scheduledAt: apptDate, type: apptType, notes: apptNotes })}
                       >
@@ -579,15 +625,15 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
               ) : appointments && appointments.length > 0 ? (
                 <div className="space-y-4">
                   {appointments.map(appt => (
-                    <Card key={appt.id} data-testid={`card-appt-${appt.id}`}>
+                    <Card key={appt.id} data-testid={`card-appt-${appt.id}`} className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <div className="stat-icon bg-primary/8">
                               <Stethoscope className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium capitalize">{appt.type.replace("_", " ")}</p>
+                              <p className="text-sm font-semibold capitalize">{appt.type.replace("_", " ")}</p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(appt.scheduledAt).toLocaleString()}
                               </p>
@@ -602,7 +648,8 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 data-testid={`link-join-appt-${appt.id}`}
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                className="text-xs flex items-center gap-1 font-semibold hover:underline"
+                                style={{ color: "hsl(24 58% 51%)" }}
                               >
                                 <Video className="w-3 h-3" /> Join Visit
                               </a>
@@ -614,11 +661,13 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                   ))}
                 </div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm font-medium">No appointments yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Request an appointment to get started with your care</p>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
+                  <CardContent className="py-14 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-4">
+                      <Calendar className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">No appointments yet</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Request an appointment to get started with your care</p>
                   </CardContent>
                 </Card>
               )}
@@ -629,48 +678,50 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           {activeTab === "treatment" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Treatment Plan</h1>
+                <h1 className="text-xl font-extrabold page-heading">Treatment Plan</h1>
                 <p className="text-sm text-muted-foreground mt-1">Your personalized TRT protocol from Prime Vitality</p>
               </div>
               {activeTreatment ? (
-                <Card>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-base">{activeTreatment.title}</CardTitle>
+                        <CardTitle className="text-base" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>{activeTreatment.title}</CardTitle>
                         <CardDescription>Active Protocol</CardDescription>
                       </div>
-                      <Badge className="bg-green-100 text-green-800 border-0">Active</Badge>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle className="w-3 h-3" /> Active
+                      </span>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-5">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Medications</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5">Medications</p>
                       <div className="flex flex-wrap gap-2">
                         {(() => {
                           let meds: string[] = [];
                           try { meds = JSON.parse(activeTreatment.medications); } catch {}
                           return meds.map((med, i) => (
-                            <span key={i} className="bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full font-medium">
-                              <Pill className="w-3 h-3 inline mr-1" />{med}
+                            <span key={i} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: "hsl(0 55% 22% / 0.08)", color: "hsl(0 55% 22%)" }}>
+                              <Pill className="w-3 h-3" />{med}
                             </span>
                           ));
                         })()}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Dosing Schedule</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Dosing Schedule</p>
                       <p className="text-sm">{activeTreatment.dosing}</p>
                     </div>
                     {activeTreatment.instructions && (
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Instructions</p>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Instructions</p>
                         <p className="text-sm">{activeTreatment.instructions}</p>
                       </div>
                     )}
                     {activeTreatment.nextLabDate && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        <p className="text-sm font-medium text-amber-800">
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5">
+                        <p className="text-sm font-semibold text-amber-800">
                           <FlaskConical className="w-4 h-4 inline mr-1.5" />
                           Next Labs Due: {activeTreatment.nextLabDate}
                         </p>
@@ -679,11 +730,13 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                   </CardContent>
                 </Card>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm font-medium">No active treatment plan</p>
-                    <p className="text-xs text-muted-foreground mt-1">Your provider will create a protocol after your initial consultation</p>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
+                  <CardContent className="py-14 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-4">
+                      <Pill className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">No active treatment plan</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Your provider will create a protocol after your initial consultation</p>
                   </CardContent>
                 </Card>
               )}
@@ -694,24 +747,28 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           {activeTab === "subscription" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Subscription</h1>
+                <h1 className="text-xl font-extrabold page-heading">Subscription</h1>
                 <p className="text-sm text-muted-foreground mt-1">Manage your Prime Vitality care plan</p>
               </div>
 
-              {/* Current status */}
               {activePlan && (
-                <Card className="border-primary/30">
-                  <CardContent className="p-4">
+                <Card className="border-primary/25 bg-primary/4 shadow-[0_1px_6px_rgba(90,26,26,0.10)]">
+                  <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-muted-foreground">Current Plan</p>
-                        <p className="text-base font-bold">{activePlan.label} — {activePlan.price}</p>
-                        <StatusBadge status={user.subscriptionStatus ?? "inactive"} />
+                        <p className="text-xs text-muted-foreground font-medium mb-1">Current Plan</p>
+                        <p className="text-base font-extrabold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+                          {activePlan.label} — {activePlan.price}
+                        </p>
+                        <div className="mt-1.5">
+                          <StatusBadge status={user.subscriptionStatus ?? "inactive"} />
+                        </div>
                       </div>
                       <Button
                         data-testid="button-manage-billing"
                         variant="outline"
                         size="sm"
+                        className="font-semibold shadow-sm"
                         onClick={() => portalMutation.mutate()}
                         disabled={portalMutation.isPending}
                       >
@@ -727,25 +784,36 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                 {Object.entries(PLAN_INFO).map(([key, plan]) => {
                   const isCurrent = user.subscriptionPlan === key;
                   return (
-                    <Card key={key} data-testid={`card-plan-${key}`} className={isCurrent ? "border-primary ring-1 ring-primary" : ""}>
+                    <Card
+                      key={key}
+                      data-testid={`card-plan-${key}`}
+                      className={`shadow-[0_1px_6px_rgba(15,21,35,0.07)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,21,35,0.10)] ${
+                        isCurrent ? "border-primary/40 ring-1 ring-primary/20" : "border-border/60"
+                      }`}
+                    >
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${plan.color}`}>{plan.label}</span>
-                          {isCurrent && <Badge variant="outline" className="text-xs">Current</Badge>}
+                          <span className={`pill-badge ${plan.bgColor} ${plan.color}`}>{plan.label}</span>
+                          {isCurrent && (
+                            <Badge variant="outline" className="text-xs font-semibold">Current</Badge>
+                          )}
                         </div>
-                        <p className="text-2xl font-bold mt-2">{plan.price}</p>
+                        <p className="text-2xl font-extrabold mt-3" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+                          {plan.price}
+                        </p>
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        <ul className="space-y-1.5">
+                      <CardContent className="space-y-4">
+                        <ul className="space-y-2">
                           {plan.features.map((f, i) => (
                             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                              <CheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" /> {f}
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /> {f}
                             </li>
                           ))}
                         </ul>
                         <Button
                           data-testid={`button-select-plan-${key}`}
-                          className="w-full"
+                          className="w-full font-bold"
+                          style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}
                           variant={isCurrent ? "outline" : "default"}
                           size="sm"
                           disabled={isCurrent || checkoutMutation.isPending}
@@ -759,7 +827,10 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                 })}
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Questions about billing? Email <a href="mailto:care@myprimevitality.com" className="text-primary hover:underline">care@myprimevitality.com</a>
+                Questions about billing? Email{" "}
+                <a href="mailto:care@myprimevitality.com" className="hover:underline font-semibold" style={{ color: "hsl(0 55% 22%)" }}>
+                  care@myprimevitality.com
+                </a>
               </p>
             </div>
           )}
@@ -768,21 +839,23 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           {activeTab === "telehealth" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-xl font-bold">Video Visit</h1>
+                <h1 className="text-xl font-extrabold page-heading">Video Visit</h1>
                 <p className="text-sm text-muted-foreground mt-1">Join your telehealth consultation via Doxy.me</p>
               </div>
-              <Card>
-                <CardContent className="p-6 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                    <Video className="w-8 h-8 text-primary" />
+              <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
+                <CardContent className="p-8 text-center space-y-5">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "hsl(0 55% 22% / 0.08)" }}>
+                    <Video className="w-10 h-10 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold">Prime Vitality Telehealth Room</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h2 className="text-base font-extrabold" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+                      Prime Vitality Telehealth Room
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1.5 max-w-sm mx-auto">
                       Your provider will be waiting in the virtual room at your scheduled appointment time.
                     </p>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground space-y-1">
+                  <div className="bg-muted/60 border border-border/50 rounded-xl p-4 text-sm text-muted-foreground space-y-1.5 text-left max-w-sm mx-auto">
                     <p>• No downloads required — works in your browser</p>
                     <p>• Make sure your camera and microphone are enabled</p>
                     <p>• Join a few minutes early to test your connection</p>
@@ -793,8 +866,8 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                     rel="noopener noreferrer"
                     data-testid="link-join-doxy"
                   >
-                    <Button className="w-full sm:w-auto" size="lg">
-                      <Video className="w-5 h-5 mr-2" /> Join Video Visit
+                    <Button className="w-full sm:w-auto font-bold gap-2" size="lg" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+                      <Video className="w-5 h-5" /> Join Video Visit
                     </Button>
                   </a>
                   <p className="text-xs text-muted-foreground">
@@ -804,15 +877,15 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
               </Card>
 
               {upcomingAppts.length > 0 && (
-                <Card>
+                <Card className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                   <CardHeader>
-                    <CardTitle className="text-base">Upcoming Appointments</CardTitle>
+                    <CardTitle className="text-base" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>Upcoming Appointments</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {upcomingAppts.map(appt => (
-                      <div key={appt.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div key={appt.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border/40">
                         <div>
-                          <p className="text-sm font-medium capitalize">{appt.type.replace("_", " ")}</p>
+                          <p className="text-sm font-semibold capitalize">{appt.type.replace("_", " ")}</p>
                           <p className="text-xs text-muted-foreground">{new Date(appt.scheduledAt).toLocaleString()}</p>
                         </div>
                         <StatusBadge status={appt.status} />
