@@ -11,6 +11,7 @@ import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/not-found";
 import { apiRequest } from "./lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export type AppUser = {
   id: number;
@@ -29,6 +30,29 @@ export type AppUser = {
 function App() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Handle Stripe redirect back to app
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const subscription = params.get("subscription");
+    if (subscription === "success") {
+      const plan = params.get("plan") || "";
+      toast({
+        title: "Subscription activated!",
+        description: `Your ${plan} plan is now active. Welcome to Prime Vitality.`,
+      });
+      // Clean URL without reloading
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (subscription === "cancelled") {
+      toast({
+        title: "Checkout cancelled",
+        description: "No charge was made. You can subscribe anytime from your dashboard.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const handleLogin = (token: string, userData: AppUser) => {
     setToken(token, userData);

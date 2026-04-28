@@ -133,8 +133,8 @@ export function registerRoutes(httpServer: any, app: Express) {
         payment_method_types: ["card"],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
-        success_url: `${process.env.FRONTEND_URL || req.headers.origin}/#/dashboard?subscription=success&plan=${plan}`,
-        cancel_url: `${process.env.FRONTEND_URL || req.headers.origin}/#/dashboard?subscription=cancelled`,
+        success_url: `${process.env.FRONTEND_URL || req.headers.origin}/?subscription=success&plan=${plan}`,
+        cancel_url: `${process.env.FRONTEND_URL || req.headers.origin}/?subscription=cancelled`,
         metadata: { userId: String(user.id), plan }
       });
 
