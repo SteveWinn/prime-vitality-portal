@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function SubscriptionCancelled() {
   const [countdown, setCountdown] = useState(5);
@@ -19,25 +17,53 @@ export default function SubscriptionCancelled() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <div className="text-center max-w-md mx-auto px-6 py-12 rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex justify-center mb-6">
-          <XCircle className="h-16 w-16 text-muted-foreground" />
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#f8fafc",
+      fontFamily: "system-ui, sans-serif",
+    }}>
+      <div style={{
+        textAlign: "center",
+        maxWidth: 440,
+        margin: "0 auto",
+        padding: "3rem 2rem",
+        borderRadius: 16,
+        border: "1px solid #e2e8f0",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+      }}>
+        <div style={{ marginBottom: 24 }}>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto", display: "block" }}>
+            <circle cx="12" cy="12" r="12" fill="#94a3b8" opacity="0.15" />
+            <path d="M15 9l-6 6M9 9l6 6" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
           Checkout cancelled
         </h1>
-        <p className="text-muted-foreground mb-8">
+        <p style={{ color: "#64748b", marginBottom: 32, lineHeight: 1.6 }}>
           No charge was made. You can subscribe anytime from your dashboard.
         </p>
-        <Button
-          className="w-full"
+        <button
           onClick={() => { window.location.href = "/"; }}
-          data-testid="button-go-to-dashboard"
+          style={{
+            width: "100%",
+            padding: "0.75rem 1.5rem",
+            backgroundColor: "#2563eb",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
         >
           Back to Dashboard
-        </Button>
-        <p className="text-xs text-muted-foreground mt-4">
+        </button>
+        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 16 }}>
           Redirecting in {countdown} second{countdown !== 1 ? "s" : ""}…
         </p>
       </div>
