@@ -33,6 +33,11 @@ function App() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Handle Stripe redirect pages via real pathname (hash is stripped by Stripe)
+  const pathname = window.location.pathname;
+  if (pathname === "/subscription/success") return <SubscriptionSuccess />;
+  if (pathname === "/subscription/cancelled") return <SubscriptionCancelled />;
+
   const handleLogin = (token: string, userData: AppUser) => {
     setToken(token, userData);
     setCurrentUser(userData);
@@ -98,8 +103,6 @@ function App() {
               <LoginPage onLogin={handleLogin} />
             )}
           </Route>
-          <Route path="/subscription/success" component={SubscriptionSuccess} />
-          <Route path="/subscription/cancelled" component={SubscriptionCancelled} />
           <Route component={NotFound} />
         </Switch>
       </Router>
