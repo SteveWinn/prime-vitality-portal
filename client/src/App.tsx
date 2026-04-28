@@ -30,7 +30,7 @@ export type AppUser = {
 };
 
 function App() {
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(getCurrentUser());
   const [loading, setLoading] = useState(false);
 
   // Handle Stripe redirect pages via real pathname (hash is stripped by Stripe)
