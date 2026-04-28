@@ -11,10 +11,34 @@ const API_BASE = (() => {
   return ""; // dev (same-origin)
 })();
 
+// Friendly error messages — never expose raw status codes or JSON to the user
+const FRIENDLY_ERRORS: Record<string, string> = {
+  "Invalid email or password": "Incorrect email or password. Please try again.",
+  "Email already registered": "An account with that email already exists. Try signing in instead.",
+  "Unauthorized": "Your session has expired. Please sign in again.",
+  "Invalid token": "Your session has expired. Please sign in again.",
+  "Admin only": "You don't have permission to access that page.",
+  "Forbidden": "You don't have permission to do that.",
+  "User not found": "Account not found. Please check your details.",
+  "Not found": "The requested item could not be found.",
+  "Stripe not configured": "Billing is temporarily unavailable. Please contact care@myprimevitality.com.",
+  "No billing account found": "No billing account found. Please contact care@myprimevitality.com.",
+  "Invalid plan": "That plan is not available. Please choose another.",
+  "Registration failed": "Registration failed. Please check your information and try again.",
+  "Login failed": "Sign in failed. Please try again.",
+};
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = res.statusText || "Something went wrong. Please try again.";
+    try {
+      const json = await res.json();
+      const raw = json?.error || json?.message || message;
+      message = FRIENDLY_ERRORS[raw] ?? raw;
+    } catch {
+      // body wasn't JSON — use statusText
+    }
+    throw new Error(message);
   }
 }
 

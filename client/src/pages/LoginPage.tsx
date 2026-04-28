@@ -132,7 +132,18 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
               </Button>
             </form>
 
-            <div className="mt-5 pt-4 border-t border-border/50 text-center text-sm text-muted-foreground">
+            <div className="mt-2 text-right">
+              <a
+                href={`mailto:care@myprimevitality.com?subject=Password%20Reset%20Request&body=Please%20reset%20the%20password%20for%20my%20account.%20My%20email%20is%3A%20`}
+                className="text-xs hover:underline"
+                style={{ color: "hsl(24 58% 51%)" }}
+                data-testid="link-forgot-password"
+              >
+                Forgot password?
+              </a>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border/50 text-center text-sm text-muted-foreground">
               New patient?{" "}
               <button
                 onClick={() => setLocation("/register")}
@@ -152,6 +163,14 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
             Get your free assessment →
           </a>
         </p>
+
+        <div className="flex items-center justify-center gap-3 flex-wrap text-xs text-muted-foreground">
+          <a href="https://myprimevitality.com/privacy-policy.html" target="_blank" rel="noopener" className="hover:underline">Privacy Policy</a>
+          <span>·</span>
+          <a href="https://myprimevitality.com/hipaa-notice.html" target="_blank" rel="noopener" className="hover:underline">HIPAA Notice</a>
+          <span>·</span>
+          <a href="https://myprimevitality.com/terms-of-service.html" target="_blank" rel="noopener" className="hover:underline">Terms of Service</a>
+        </div>
       </div>
     </div>
   );
