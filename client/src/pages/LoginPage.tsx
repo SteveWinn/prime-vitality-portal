@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import type { AppUser } from "../App";
+import { Activity, AlertCircle } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -20,13 +21,22 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage({ onLogin }: { onLogin: (token: string, user: AppUser) => void }) {
   const [loading, setLoading] = useState(false);
+  const [slowWarning, setSlowWarning] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const form = useForm<LoginForm>({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
+    setSlowWarning(false);
+
+    // Show cold-start warning if Render takes more than 4 seconds
+    const slowTimer = setTimeout(() => setSlowWarning(true), 4000);
+
     try {
       const res = await apiRequest("POST", "/api/auth/login", data);
       const json = await res.json();
@@ -35,7 +45,9 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
     } catch (e: any) {
       toast({ title: "Login failed", description: e.message, variant: "destructive" });
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
+      setSlowWarning(false);
     }
   };
 
@@ -45,13 +57,11 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <svg width="40" height="40" viewBox="0 0 36 36" fill="none">
-              <circle cx="18" cy="18" r="17" stroke="hsl(var(--primary))" strokeWidth="2"/>
-              <path d="M18 26 L18 12 M18 12 L12 18 M18 12 L24 18" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="18" cy="12" r="2.5" fill="hsl(var(--accent))"/>
-            </svg>
-            <span className="text-2xl font-bold" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-              Prime <span className="text-accent">Vitality</span>
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+              <Activity className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold">
+              Prime <span className="text-primary">Vitality</span>
             </span>
           </div>
           <p className="text-muted-foreground text-sm">Patient Portal</p>
@@ -69,6 +79,7 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="you@example.com"
                   data-testid="input-email"
                   {...form.register("email")}
@@ -82,6 +93,7 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   data-testid="input-password"
                   {...form.register("password")}
@@ -90,20 +102,31 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
                   <p className="text-destructive text-xs">{form.formState.errors.password.message}</p>
                 )}
               </div>
+
+              {slowWarning && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    The server is waking up — this can take 30–60 seconds on first use. Please wait…
+                  </p>
+                </div>
+              )}
+
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full"
                 disabled={loading}
                 data-testid="button-login"
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? "Signing in…" : "Sign In"}
               </Button>
             </form>
+
             <div className="mt-4 text-center text-sm text-muted-foreground">
               New patient?{" "}
               <button
                 onClick={() => setLocation("/register")}
-                className="text-accent hover:underline font-medium"
+                className="text-primary hover:underline font-medium"
                 data-testid="link-register"
               >
                 Create an account
@@ -114,7 +137,7 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
 
         <p className="text-center text-xs text-muted-foreground">
           Not a patient yet?{" "}
-          <a href="https://myprimevitality.com" className="text-accent hover:underline">
+          <a href="https://myprimevitality.com" className="text-primary hover:underline">
             Get your free assessment
           </a>
         </p>

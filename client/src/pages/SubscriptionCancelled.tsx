@@ -1,71 +1,37 @@
 import { useEffect, useState } from "react";
 
 export default function SubscriptionCancelled() {
-  const [countdown, setCountdown] = useState(5);
+  const [count, setCount] = useState(6);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) {
-          clearInterval(interval);
-          window.location.href = "/";
-        }
+    const t = setInterval(() => {
+      setCount(c => {
+        if (c <= 1) { clearInterval(t); window.location.replace("/"); }
         return c - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(t);
   }, []);
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#f8fafc",
-      fontFamily: "system-ui, sans-serif",
-    }}>
-      <div style={{
-        textAlign: "center",
-        maxWidth: 440,
-        margin: "0 auto",
-        padding: "3rem 2rem",
-        borderRadius: 16,
-        border: "1px solid #e2e8f0",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-      }}>
-        <div style={{ marginBottom: 24 }}>
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto", display: "block" }}>
-            <circle cx="12" cy="12" r="12" fill="#94a3b8" opacity="0.15" />
-            <path d="M15 9l-6 6M9 9l6 6" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"/>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div style={{ textAlign: "center", maxWidth: 440, width: "90%", padding: "3rem 2rem", borderRadius: 20, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
-          Checkout cancelled
-        </h1>
-        <p style={{ color: "#64748b", marginBottom: 32, lineHeight: 1.6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "#0f172a", margin: "0 0 0.5rem" }}>Checkout cancelled</h1>
+        <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.6, margin: "0 0 2rem" }}>
           No charge was made. You can subscribe anytime from your dashboard.
         </p>
         <button
-          onClick={() => { window.location.href = "/"; }}
-          style={{
-            width: "100%",
-            padding: "0.75rem 1.5rem",
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          onClick={() => window.location.replace("/")}
+          style={{ width: "100%", padding: "0.875rem", background: "#2563eb", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: "pointer", marginBottom: "1rem" }}
         >
           Back to Dashboard
         </button>
-        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 16 }}>
-          Redirecting in {countdown} second{countdown !== 1 ? "s" : ""}…
-        </p>
+        <p style={{ fontSize: 13, color: "#94a3b8" }}>Redirecting in {count} second{count !== 1 ? "s" : ""}…</p>
       </div>
     </div>
   );

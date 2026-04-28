@@ -3,15 +3,13 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { useState, useEffect } from "react";
-import { setToken, setCurrentUser, clearAuth, getToken } from "./lib/auth";
+import { useState } from "react";
+import { setToken, setCurrentUser, clearAuth, getCurrentUser } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/not-found";
-import { apiRequest } from "./lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancelled from "./pages/SubscriptionCancelled";
 
@@ -29,14 +27,27 @@ export type AppUser = {
   doxyRoomUrl?: string;
 };
 
+// Handle Stripe redirect paths BEFORE rendering the React app.
+// Stripe strips hash fragments, so these arrive as real paths.
+// Netlify's _redirects rule serves index.html for all paths,
+// then we intercept here before any router or provider loads.
+const _pathname = window.location.pathname;
+if (_pathname === "/subscription/success") {
+  document.getElementById("root")!.innerHTML = "";
+}
+
+function renderStripeRedirect() {
+  const p = window.location.pathname;
+  if (p === "/subscription/success") return <SubscriptionSuccess />;
+  if (p === "/subscription/cancelled") return <SubscriptionCancelled />;
+  return null;
+}
+
 function App() {
   const [user, setUser] = useState<AppUser | null>(getCurrentUser());
-  const [loading, setLoading] = useState(false);
 
-  // Handle Stripe redirect pages via real pathname (hash is stripped by Stripe)
-  const pathname = window.location.pathname;
-  if (pathname === "/subscription/success") return <SubscriptionSuccess />;
-  if (pathname === "/subscription/cancelled") return <SubscriptionCancelled />;
+  const stripeRedirect = renderStripeRedirect();
+  if (stripeRedirect) return stripeRedirect;
 
   const handleLogin = (token: string, userData: AppUser) => {
     setToken(token, userData);
@@ -55,54 +66,25 @@ function App() {
     setUser(updated);
   };
 
+  const renderDashboard = () => {
+    if (!user) return <LoginPage onLogin={handleLogin} />;
+    return user.role === "admin"
+      ? <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
+      : <PatientDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />;
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router hook={useHashLocation}>
         <Switch>
-          <Route path="/">
-            {user ? (
-              user.role === "admin" ? (
-                <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              ) : (
-                <PatientDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              )
-            ) : (
-              <LoginPage onLogin={handleLogin} />
-            )}
-          </Route>
+          <Route path="/">{renderDashboard()}</Route>
           <Route path="/login">
-            {user ? (
-              user.role === "admin" ? (
-                <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              ) : (
-                <PatientDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              )
-            ) : (
-              <LoginPage onLogin={handleLogin} />
-            )}
+            {user ? renderDashboard() : <LoginPage onLogin={handleLogin} />}
           </Route>
           <Route path="/register">
-            {user ? (
-              user.role === "admin" ? (
-                <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              ) : (
-                <PatientDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              )
-            ) : (
-              <RegisterPage onLogin={handleLogin} />
-            )}
+            {user ? renderDashboard() : <RegisterPage onLogin={handleLogin} />}
           </Route>
-          <Route path="/dashboard">
-            {user ? (
-              user.role === "admin" ? (
-                <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              ) : (
-                <PatientDashboard user={user} onLogout={handleLogout} onUpdateUser={updateUser} />
-              )
-            ) : (
-              <LoginPage onLogin={handleLogin} />
-            )}
-          </Route>
+          <Route path="/dashboard">{renderDashboard()}</Route>
           <Route component={NotFound} />
         </Switch>
       </Router>

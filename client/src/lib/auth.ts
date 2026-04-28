@@ -1,44 +1,60 @@
-import { apiRequest } from "./queryClient";
+// Auth token persisted in sessionStorage so page reloads (e.g. Stripe redirects) don't log user out.
+// sessionStorage clears automatically when the tab is closed — appropriate for a healthcare portal.
 
-const TOKEN_KEY = "pv_auth_token";
-const USER_KEY = "pv_auth_user";
+const TOKEN_KEY = "pv_token";
+const USER_KEY = "pv_user";
 
-let authToken: string | null = sessionStorage.getItem(TOKEN_KEY);
-let currentUser: any = (() => {
-  try { return JSON.parse(sessionStorage.getItem(USER_KEY) || "null"); } catch { return null; }
-})();
+function loadFromSession<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+let _token: string | null = sessionStorage.getItem(TOKEN_KEY);
+let _user: any = loadFromSession(USER_KEY);
 
 export function setToken(token: string, user: any) {
-  authToken = token;
-  currentUser = user;
-  sessionStorage.setItem(TOKEN_KEY, token);
-  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  _token = token;
+  _user = user;
+  try {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch {
+    // sessionStorage unavailable — in-memory only (shouldn't happen on Netlify)
+  }
 }
 
-export function getToken() {
-  return authToken;
+export function getToken(): string | null {
+  return _token;
 }
 
-export function getCurrentUser() {
-  return currentUser;
+export function getCurrentUser(): any {
+  return _user;
 }
 
 export function setCurrentUser(user: any) {
-  currentUser = user;
-  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  _user = user;
+  try {
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch {}
 }
 
 export function clearAuth() {
-  authToken = null;
-  currentUser = null;
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(USER_KEY);
+  _token = null;
+  _user = null;
+  try {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+  } catch {}
 }
 
-export function isAuthenticated() {
-  return !!authToken;
+export function isAuthenticated(): boolean {
+  return !!_token;
 }
 
-export function authHeaders() {
-  return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+export function authHeaders(): Record<string, string> {
+  return _token ? { Authorization: `Bearer ${_token}` } : {};
 }
