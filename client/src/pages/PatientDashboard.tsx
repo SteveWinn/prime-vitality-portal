@@ -131,7 +131,7 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
       if (data.url) window.open(data.url, "_blank");
       else toast({ title: "Stripe not configured", description: "Contact care@myprimevitality.com to set up billing.", variant: "destructive" });
     },
-    onError: () => toast({ title: "Billing unavailable", description: "Contact care@myprimevitality.com.", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Billing unavailable", description: err?.message || "Contact care@myprimevitality.com.", variant: "destructive" }),
   });
 
   const portalMutation = useMutation({

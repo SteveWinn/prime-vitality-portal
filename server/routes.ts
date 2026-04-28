@@ -9,7 +9,7 @@ import { registerSchema, loginSchema, insertMessageSchema, insertAppointmentSche
 const JWT_SECRET = process.env.JWT_SECRET || "primevitality_jwt_secret_2026";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 
-const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" as any }) : null;
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" as any }) : null;
 
 // Stripe price IDs — these should be set via env vars in production
 const STRIPE_PRICES: Record<string, string> = {
