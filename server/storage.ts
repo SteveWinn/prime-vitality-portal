@@ -9,10 +9,14 @@ import {
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
-// On Render free tier, /data doesn't exist (paid plans only) — use /tmp which always exists
-const DB_PATH = process.env.NODE_ENV === "production"
-  ? "/tmp/prime_vitality.db"
-  : "prime_vitality.db";
+// Render paid tier: use persistent disk mounted at /data
+// Render free tier fallback: /tmp (resets on redeploy)
+// Local dev: project root
+const DB_PATH = process.env.DB_PATH
+  ? process.env.DB_PATH
+  : process.env.NODE_ENV === "production"
+    ? "/data/prime_vitality.db"
+    : "prime_vitality.db";
 const sqlite = new Database(DB_PATH);
 export const db = drizzle(sqlite);
 
@@ -84,6 +88,16 @@ sqlite.exec(`
     updated_at TEXT NOT NULL
   );
 `);
+
+// Safe column additions for existing databases
+const addColumnIfNotExists = (table: string, column: string, definition: string) => {
+  try {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch {
+    // Column already exists — ignore
+  }
+};
+addColumnIfNotExists("lab_results", "pdf_filename", "TEXT");
 
 // Seed admin account if not exists
 const adminExists = db.select().from(users).where(eq(users.email, "admin@myprimevitality.com")).get();

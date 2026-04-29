@@ -18,6 +18,9 @@ import {
   Pill, FileText, Send, AlertCircle, Activity, Stethoscope
 } from "lucide-react";
 import type { LabResult, Message, Appointment, TreatmentPlan } from "@shared/schema";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
+} from "recharts";
 
 interface PatientDashboardProps {
   user: AppUser;
@@ -28,21 +31,21 @@ interface PatientDashboardProps {
 const PLAN_INFO: Record<string, { label: string; price: string; color: string; bgColor: string; features: string[] }> = {
   starter: {
     label: "Starter",
-    price: "$149/mo",
+    price: "$119/mo",
     color: "text-blue-700",
     bgColor: "bg-blue-50 border-blue-100",
     features: ["Monthly TRT consultation", "Basic lab panel", "Secure messaging", "Standard shipping"],
   },
   optimized: {
     label: "Optimized",
-    price: "$249/mo",
+    price: "$169/mo",
     color: "text-primary",
     bgColor: "bg-primary/8 border-primary/15",
     features: ["Bi-weekly consultations", "Comprehensive lab panel", "Priority messaging", "Expedited shipping", "Nutrition guidance"],
   },
   elite: {
     label: "Elite",
-    price: "$399/mo",
+    price: "$269/mo",
     color: "text-amber-700",
     bgColor: "bg-amber-50 border-amber-100",
     features: ["Weekly consultations", "Full hormone panel + peptides", "24/7 priority access", "Same-day shipping", "Personalized protocol", "Body composition tracking"],
@@ -152,6 +155,7 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
   const navItems = [
     { id: "overview",     label: "Overview",       icon: LayoutDashboard },
     { id: "labs",         label: "Lab Results",    icon: FlaskConical },
+    { id: "progress",     label: "Progress Charts", icon: Activity },
     { id: "messages",     label: "Messages",       icon: MessageSquare, badge: unreadCount },
     { id: "appointments", label: "Appointments",   icon: Calendar },
     { id: "treatment",    label: "Treatment Plan", icon: Pill },
@@ -449,7 +453,112 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
           )}
 
           {/* MESSAGES */}
-          {activeTab === "messages" && (
+          {activeTab === "progress" && (() => {
+            // Build chart data from lab results — one point per lab date per marker
+            const KEY_MARKERS = [
+              { key: "Testosterone",      label: "Total Testosterone",  unit: "ng/dL",  refLow: 264,  refHigh: 916 },
+              { key: "Free Testosterone", label: "Free Testosterone",   unit: "pg/mL",  refLow: 30.3, refHigh: 183.2 },
+              { key: "Estradiol",         label: "Estradiol",           unit: "pg/mL",  refLow: 7.6,  refHigh: 42.6 },
+              { key: "Hematocrit",        label: "Hematocrit",          unit: "%",      refLow: 37.5, refHigh: 51.0 },
+              { key: "PSA",               label: "PSA",                 unit: "ng/mL",  refLow: 0,    refHigh: 4.0 },
+              { key: "SHBG",              label: "SHBG",                unit: "nmol/L", refLow: 16.5, refHigh: 55.9 },
+              { key: "Hemoglobin",        label: "Hemoglobin",          unit: "g/dL",   refLow: 13.0, refHigh: 17.7 },
+            ];
+
+            // Parse all lab results into { date, markerKey: value } objects
+            const allPoints = (labs || []).flatMap(lab => {
+              let parsed: Record<string, string> = {};
+              try { parsed = JSON.parse(lab.results); } catch {}
+              return [{ date: lab.date, ...parsed }];
+            }).sort((a, b) => a.date.localeCompare(b.date));
+
+            // For each marker build a series
+            const getMarkerData = (markerKey: string) =>
+              allPoints
+                .map(pt => {
+                  // Try exact key or partial key match
+                  const val = Object.entries(pt).find(([k]) =>
+                    k.toLowerCase().includes(markerKey.toLowerCase())
+                  )?.[1] as string | undefined;
+                  if (!val) return null;
+                  const num = parseFloat(val);
+                  if (isNaN(num)) return null;
+                  return { date: pt.date, value: num };
+                })
+                .filter(Boolean) as { date: string; value: number }[];
+
+            return (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-xl font-extrabold page-heading">Progress Charts</h1>
+                  <p className="text-sm text-muted-foreground mt-1">Track your key biomarkers over time</p>
+                </div>
+
+                {labsLoading ? (
+                  <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 bg-muted/40 rounded-xl animate-pulse" />)}</div>
+                ) : !labs || labs.length < 1 ? (
+                  <div className="rounded-xl border border-border/60 bg-muted/20 py-16 text-center">
+                    <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm font-semibold">No lab data yet</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Charts will appear once your provider uploads lab results</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-5">
+                    {KEY_MARKERS.map(marker => {
+                      const data = getMarkerData(marker.key);
+                      if (data.length === 0) return null;
+                      const latest = data[data.length - 1];
+                      const isHigh = latest.value > marker.refHigh;
+                      const isLow = latest.value < marker.refLow;
+                      const statusColor = isHigh || isLow ? "text-amber-600" : "text-emerald-600";
+                      const statusLabel = isHigh ? "High" : isLow ? "Low" : "Normal";
+                      return (
+                        <div key={marker.key} data-testid={`chart-${marker.key.replace(/\s+/g, "-").toLowerCase()}`} className="bg-card border border-border/60 rounded-xl p-4 shadow-[0_1px_6px_rgba(15,21,35,0.06)]">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-sm font-semibold">{marker.label}</p>
+                              <p className="text-xs text-muted-foreground">{marker.unit} · Ref: {marker.refLow}–{marker.refHigh}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold">{latest.value} <span className="text-xs font-normal text-muted-foreground">{marker.unit}</span></p>
+                              <p className={`text-xs font-medium ${statusColor}`}>{statusLabel}</p>
+                            </div>
+                          </div>
+                          <ResponsiveContainer width="100%" height={140}>
+                            <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                              <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
+                              <Tooltip
+                                contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }}
+                                formatter={(v: number) => [`${v} ${marker.unit}`, marker.label]}
+                              />
+                              {marker.refHigh && (
+                                <ReferenceLine y={marker.refHigh} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Max", fontSize: 9, fill: "#f59e0b" }} />
+                              )}
+                              {marker.refLow > 0 && (
+                                <ReferenceLine y={marker.refLow} stroke="#3b82f6" strokeDasharray="4 4" label={{ value: "Min", fontSize: 9, fill: "#3b82f6" }} />
+                              )}
+                              <Line
+                                type="monotone"
+                                dataKey="value"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth={2}
+                                dot={{ r: 4, fill: "hsl(var(--primary))" }}
+                                activeDot={{ r: 6 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+                    {activeTab === "messages" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>

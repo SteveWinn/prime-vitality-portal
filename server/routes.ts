@@ -3,8 +3,25 @@ import { createServer } from "http";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Stripe from "stripe";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { registerSchema, loginSchema, insertMessageSchema, insertAppointmentSchema, insertTreatmentPlanSchema, insertLabResultSchema } from "@shared/schema";
+import { parseLabCorpPdf, markersToResultsJson } from "./labParser";
+
+// PDF upload dir — use persistent disk in prod
+const UPLOAD_DIR = process.env.NODE_ENV === "production" ? "/data/uploads" : "uploads";
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const upload = multer({
+  dest: UPLOAD_DIR,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only PDF files are accepted"));
+  },
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || "primevitality_jwt_secret_2026";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
@@ -201,6 +218,69 @@ export function registerRoutes(httpServer: any, app: Express) {
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
+  });
+
+  // ─── PDF LAB UPLOAD ────────────────────────────────────────────────────────
+  app.post("/api/labs/upload-pdf", authMiddleware, adminOnly, upload.single("pdf"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No PDF file uploaded" });
+      const patientId = parseInt(req.body.patientId);
+      const title = req.body.title || "Lab Report";
+      const notes = req.body.notes || "";
+      if (!patientId) return res.status(400).json({ error: "patientId required" });
+
+      // Read the file buffer
+      const fileBuffer = fs.readFileSync(req.file.path);
+
+      // Parse with pdf-parse
+      let pdfText = "";
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
+        const parsed = await pdfParse(fileBuffer);
+        pdfText = parsed.text;
+      } catch (err: any) {
+        // Fallback: try raw buffer as string
+        pdfText = fileBuffer.toString("utf-8");
+      }
+
+      // Parse LabCorp markers
+      const report = parseLabCorpPdf(pdfText);
+      const resultsJson = markersToResultsJson(report.markers);
+      const markers: Record<string, string> = JSON.parse(resultsJson);
+
+      // Keep the PDF file on disk with its original name
+      const filename = req.file.filename + ".pdf";
+      fs.renameSync(req.file.path, path.join(UPLOAD_DIR, filename));
+
+      // Infer date from parsed content or use today
+      const dateMatch = pdfText.match(/(?:collected|collection date|date collected)[:\s]*([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i);
+      const labDate = dateMatch ? dateMatch[1] : new Date().toISOString().split("T")[0];
+
+      const lab = storage.createLabResult({
+        patientId,
+        uploadedBy: (req as any).userId,
+        title,
+        date: labDate,
+        notes,
+        results: JSON.stringify(resultsJson),
+        pdfFilename: filename,
+      } as any);
+
+      res.json({ lab, markers, pdfFilename: filename });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Serve uploaded PDFs
+  app.get("/api/labs/pdf/:filename", authMiddleware, (req, res) => {
+    const filename = path.basename(req.params.filename); // prevent path traversal
+    const filePath = path.join(UPLOAD_DIR, filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: "File not found" });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    res.sendFile(path.resolve(filePath));
   });
 
   // ─── MESSAGES ────────────────────────────────────────────

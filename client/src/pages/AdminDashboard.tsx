@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { authHeaders } from "@/lib/auth";
 import { AppUser } from "../App";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, Users, FlaskConical, MessageSquare, Calendar, LogOut,
   User, CheckCircle, Clock, XCircle, AlertCircle, Send, Pill, Shield,
-  Activity, Upload, Plus, Search, ChevronDown, ChevronUp
+  Activity, Upload, Plus, Search, ChevronDown, ChevronUp, FileText
 } from "lucide-react";
 import type { Message, Appointment } from "@shared/schema";
 
@@ -69,9 +70,10 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   const [labOpen, setLabOpen] = useState(false);
   const [labPatientId, setLabPatientId] = useState<number | null>(null);
   const [labTitle, setLabTitle] = useState("");
-  const [labDate, setLabDate] = useState("");
   const [labNotes, setLabNotes] = useState("");
-  const [labResults, setLabResults] = useState("");
+  const [labFile, setLabFile] = useState<File | null>(null);
+  const [labParsedMarkers, setLabParsedMarkers] = useState<Record<string, string> | null>(null);
+  const [labUploadProgress, setLabUploadProgress] = useState<"idle" | "uploading" | "done">("idle");
 
   // Appointment confirm state
   const [apptConfirmId, setApptConfirmId] = useState<number | null>(null);
@@ -121,14 +123,28 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   });
 
   const uploadLabMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiRequest("POST", "/api/labs", data).then(r => r.json()),
-    onSuccess: () => {
-      setLabOpen(false);
-      setLabTitle(""); setLabDate(""); setLabNotes(""); setLabResults(""); setLabPatientId(null);
-      toast({ title: "Lab results uploaded" });
+    mutationFn: async (payload: { patientId: number; title: string; notes: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("pdf", payload.file);
+      formData.append("patientId", String(payload.patientId));
+      formData.append("title", payload.title);
+      formData.append("notes", payload.notes);
+      const API_BASE = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${API_BASE}/api/labs/upload-pdf`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed"); }
+      return res.json();
     },
-    onError: () => toast({ title: "Error", description: "Upload failed.", variant: "destructive" }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/labs"] });
+      setLabParsedMarkers(data.markers || null);
+      setLabUploadProgress("done");
+      toast({ title: "Lab PDF uploaded", description: `${Object.keys(data.markers || {}).length} markers extracted` });
+    },
+    onError: (err: any) => toast({ title: "Upload failed", description: err.message, variant: "destructive" }),
   });
 
   const confirmApptMutation = useMutation({
@@ -624,17 +640,17 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-xl font-extrabold page-heading">Upload Lab Results</h1>
-                  <p className="text-sm text-muted-foreground mt-1">Add lab results to a patient's record</p>
+                  <p className="text-sm text-muted-foreground mt-1">Upload a LabCorp PDF — markers are extracted automatically</p>
                 </div>
-                <Dialog open={labOpen} onOpenChange={setLabOpen}>
+                <Dialog open={labOpen} onOpenChange={v => { setLabOpen(v); if (!v) { setLabFile(null); setLabParsedMarkers(null); setLabUploadProgress("idle"); } }}>
                   <DialogTrigger asChild>
                     <Button data-testid="button-upload-lab" size="sm">
-                      <Upload className="w-4 h-4 mr-2" /> Upload Results
+                      <Upload className="w-4 h-4 mr-2" /> Upload PDF
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-lg">
                     <DialogHeader>
-                      <DialogTitle>Upload Lab Results</DialogTitle>
+                      <DialogTitle>Upload LabCorp PDF</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 mt-2">
                       <div>
@@ -657,43 +673,63 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                         <Input data-testid="input-lab-title" value={labTitle} onChange={e => setLabTitle(e.target.value)} className="mt-1" placeholder="e.g. Comprehensive Hormone Panel" />
                       </div>
                       <div>
-                        <Label>Date</Label>
-                        <Input data-testid="input-lab-date" type="date" value={labDate} onChange={e => setLabDate(e.target.value)} className="mt-1" />
-                      </div>
-                      <div>
-                        <Label>Results (JSON key:value, e.g. Testosterone:450 ng/dL, LH:3.2 mIU/mL)</Label>
-                        <Textarea
-                          data-testid="input-lab-results"
-                          value={labResults}
-                          onChange={e => setLabResults(e.target.value)}
-                          className="mt-1 font-mono text-xs"
-                          rows={4}
-                          placeholder={'{"Testosterone": "450 ng/dL", "LH": "3.2 mIU/mL", "FSH": "2.1 mIU/mL"}'}
-                        />
-                      </div>
-                      <div>
                         <Label>Provider Notes (optional)</Label>
-                        <Textarea data-testid="input-lab-notes" value={labNotes} onChange={e => setLabNotes(e.target.value)} rows={3} className="mt-1" placeholder="Clinical interpretation..." />
+                        <Textarea data-testid="input-lab-notes" value={labNotes} onChange={e => setLabNotes(e.target.value)} rows={2} className="mt-1" placeholder="Clinical interpretation..." />
                       </div>
+                      <div>
+                        <Label>LabCorp PDF Report</Label>
+                        <div
+                          className="mt-1 border-2 border-dashed border-border/60 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                          onClick={() => document.getElementById("lab-pdf-input")?.click()}
+                        >
+                          <input
+                            id="lab-pdf-input"
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            onChange={e => { setLabFile(e.target.files?.[0] || null); setLabParsedMarkers(null); setLabUploadProgress("idle"); }}
+                          />
+                          {labFile ? (
+                            <div className="flex items-center justify-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-primary" />
+                              <span className="font-medium">{labFile.name}</span>
+                              <span className="text-muted-foreground">({(labFile.size / 1024).toFixed(0)} KB)</span>
+                            </div>
+                          ) : (
+                            <div>
+                              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Click to select a PDF</p>
+                              <p className="text-xs text-muted-foreground mt-1">LabCorp format up to 20MB</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {labUploadProgress === "done" && labParsedMarkers && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                          <p className="text-xs font-semibold text-emerald-700 mb-2">Extracted {Object.keys(labParsedMarkers).length} markers:</p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {Object.entries(labParsedMarkers).map(([k, v]) => (
+                              <div key={k} className="text-xs">
+                                <span className="text-muted-foreground">{k}: </span>
+                                <span className="font-medium">{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <Button
                         data-testid="button-submit-lab"
                         className="w-full"
-                        disabled={!labPatientId || !labTitle || !labDate || !labResults || uploadLabMutation.isPending}
+                        disabled={!labPatientId || !labTitle || !labFile || uploadLabMutation.isPending}
                         onClick={() => {
-                          if (!labPatientId) return;
-                          let parsed: Record<string, string> = {};
-                          try { parsed = JSON.parse(labResults); } catch { toast({ title: "Invalid JSON", description: "Results must be valid JSON.", variant: "destructive" }); return; }
-                          uploadLabMutation.mutate({
-                            patientId: labPatientId,
-                            uploadedBy: user.id,
-                            title: labTitle,
-                            date: labDate,
-                            notes: labNotes,
-                            results: JSON.stringify(parsed),
-                          });
+                          if (!labPatientId || !labFile) return;
+                          setLabUploadProgress("uploading");
+                          uploadLabMutation.mutate({ patientId: labPatientId, title: labTitle, notes: labNotes, file: labFile });
                         }}
                       >
-                        {uploadLabMutation.isPending ? "Uploading..." : "Upload Results"}
+                        {uploadLabMutation.isPending ? "Uploading & Parsing..." : labUploadProgress === "done" ? "Uploaded ✓" : "Upload PDF"}
                       </Button>
                     </div>
                   </DialogContent>
@@ -703,14 +739,13 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
               <Card>
                 <CardContent className="py-12 text-center">
                   <FlaskConical className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium">Upload lab results to patients</p>
-                  <p className="text-xs text-muted-foreground mt-1">Use the button above to add lab results to any patient's record</p>
+                  <p className="text-sm font-medium">PDF Lab Upload</p>
+                  <p className="text-xs text-muted-foreground mt-1">Upload a LabCorp PDF and markers will be extracted automatically for the patient chart</p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* TREATMENT PLANS */}
           {activeTab === "treatment" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">

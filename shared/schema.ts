@@ -30,6 +30,7 @@ export const labResults = sqliteTable("lab_results", {
   date: text("date").notNull(),
   notes: text("notes"),
   results: text("results").notNull(), // JSON string of key/value lab values
+  pdfFilename: text("pdf_filename"),
   fileUrl: text("file_url"),
   createdAt: text("created_at").notNull(),
 });
