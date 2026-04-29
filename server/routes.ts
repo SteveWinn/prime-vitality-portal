@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import express from "express";
 import { createServer } from "http";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,6 +10,13 @@ import fs from "fs";
 import { storage } from "./storage";
 import { registerSchema, loginSchema, insertMessageSchema, insertAppointmentSchema, insertTreatmentPlanSchema, insertLabResultSchema } from "@shared/schema";
 import { parseLabCorpPdf, markersToResultsJson } from "./labParser";
+import {
+  sendPasswordResetEmail,
+  sendLabUploadedEmail,
+  sendNewMessageEmail,
+  sendSubscriptionEmail,
+} from "./email";
+import crypto from "crypto";
 
 // PDF upload dir — use persistent disk in prod
 const UPLOAD_DIR = process.env.NODE_ENV === "production" ? "/data/uploads" : "uploads";
@@ -29,6 +37,7 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" as any }) : null;
 
 // Stripe price IDs — these should be set via env vars in production
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 const STRIPE_PRICES: Record<string, string> = {
   starter: process.env.STRIPE_PRICE_STARTER || "price_starter",
   optimized: process.env.STRIPE_PRICE_OPTIMIZED || "price_optimized",
@@ -55,6 +64,100 @@ function adminOnly(req: Request, res: Response, next: NextFunction) {
 }
 
 export function registerRoutes(httpServer: any, app: Express) {
+
+  // ─── STRIPE WEBHOOK ──────────────────────────────────────────────
+  // Must use express.raw() — Stripe signature verification requires the raw body
+  app.post("/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
+
+      let event: any;
+      if (STRIPE_WEBHOOK_SECRET) {
+        const sig = req.headers["stripe-signature"] as string;
+        try {
+          event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        } catch (err: any) {
+          console.error("Webhook signature verification failed:", err.message);
+          return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+      } else {
+        try { event = JSON.parse(req.body.toString()); }
+        catch { return res.status(400).json({ error: "Invalid JSON" }); }
+      }
+
+      try {
+        switch (event.type) {
+          case "checkout.session.completed": {
+            const session = event.data.object;
+            const customerId = session.customer as string;
+            const subscriptionId = session.subscription as string;
+            const user = storage.getUserByStripeCustomerId(customerId);
+            if (user) {
+              const plan = session.metadata?.plan || "starter";
+              storage.updateUser(user.id, {
+                stripeSubscriptionId: subscriptionId,
+                subscriptionPlan: plan,
+                subscriptionStatus: "active",
+              });
+              await sendSubscriptionEmail(user.email, user.firstName, "activated");
+            }
+            break;
+          }
+          case "customer.subscription.updated": {
+            const sub = event.data.object;
+            const user = storage.getUserByStripeCustomerId(sub.customer as string);
+            if (user) {
+              const newStatus = sub.status === "active" ? "active"
+                : sub.status === "past_due" ? "past_due"
+                : sub.status === "canceled" ? "cancelled"
+                : sub.status;
+              storage.updateUser(user.id, {
+                subscriptionStatus: newStatus,
+                subscriptionCurrentPeriodEnd: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : undefined,
+              });
+              if (newStatus === "cancelled") {
+                await sendSubscriptionEmail(user.email, user.firstName, "cancelled");
+              }
+            }
+            break;
+          }
+          case "customer.subscription.deleted": {
+            const sub = event.data.object;
+            const user = storage.getUserByStripeCustomerId(sub.customer as string);
+            if (user) {
+              storage.updateUser(user.id, { subscriptionStatus: "cancelled" });
+              await sendSubscriptionEmail(user.email, user.firstName, "cancelled");
+            }
+            break;
+          }
+          case "invoice.payment_succeeded": {
+            const invoice = event.data.object;
+            const user = storage.getUserByStripeCustomerId(invoice.customer as string);
+            if (user && invoice.billing_reason === "subscription_cycle") {
+              storage.updateUser(user.id, { subscriptionStatus: "active" });
+              await sendSubscriptionEmail(user.email, user.firstName, "renewed");
+            }
+            break;
+          }
+          case "invoice.payment_failed": {
+            const invoice = event.data.object;
+            const user = storage.getUserByStripeCustomerId(invoice.customer as string);
+            if (user) {
+              storage.updateUser(user.id, { subscriptionStatus: "past_due" });
+              await sendSubscriptionEmail(user.email, user.firstName, "payment_failed");
+            }
+            break;
+          }
+        }
+      } catch (err) {
+        console.error("Webhook handler error:", err);
+      }
+      res.json({ received: true });
+    }
+  );
 
   // ─── AUTH ───────────────────────────────────────────────
   app.post("/api/auth/register", async (req, res) => {
@@ -85,6 +188,40 @@ export function registerRoutes(httpServer: any, app: Express) {
     } catch (e: any) {
       res.status(400).json({ error: e.message || "Login failed" });
     }
+  });
+
+  // ─── PASSWORD RESET ──────────────────────────────────────────────────────
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+    const user = storage.getUserByEmail(email);
+    // Always respond OK — don't reveal whether email exists
+    if (!user) return res.json({ ok: true });
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    storage.storeResetToken(user.id, token, expiry);
+    try {
+      await sendPasswordResetEmail(user.email, user.firstName, token);
+    } catch (err) {
+      console.error("Failed to send reset email:", err);
+    }
+    return res.json({ ok: true });
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: "Token and password required" });
+    if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+    const user = storage.getUserByResetToken(token);
+    if (!user) return res.status(400).json({ error: "Invalid or expired reset link" });
+    if (!user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
+      storage.clearResetToken(user.id);
+      return res.status(400).json({ error: "Reset link has expired. Please request a new one." });
+    }
+    const hashed = await bcrypt.hash(password, 10);
+    storage.updateUser(user.id, { password: hashed });
+    storage.clearResetToken(user.id);
+    return res.json({ ok: true });
   });
 
   app.get("/api/auth/me", authMiddleware, (req, res) => {
@@ -268,6 +405,13 @@ export function registerRoutes(httpServer: any, app: Express) {
       } as any);
 
       res.json({ lab, markers, pdfFilename: filename });
+      // Notify patient by email
+      try {
+        const patient = storage.getUser(patientId);
+        if (patient) await sendLabUploadedEmail(patient.email, patient.firstName, title);
+      } catch (emailErr) {
+        console.error("Lab notification email failed:", emailErr);
+      }
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -292,7 +436,7 @@ export function registerRoutes(httpServer: any, app: Express) {
     res.json({ count: storage.getUnreadCount((req as any).userId) });
   });
 
-  app.post("/api/messages", authMiddleware, (req, res) => {
+  app.post("/api/messages", authMiddleware, async (req, res) => {
     try {
       const data = insertMessageSchema.parse({
         ...req.body,
@@ -300,6 +444,18 @@ export function registerRoutes(httpServer: any, app: Express) {
       });
       const msg = storage.createMessage(data);
       res.json(msg);
+      // Email notification to patient when provider/admin replies
+      try {
+        const senderRole = (req as any).userRole;
+        if (senderRole === "admin" || senderRole === "provider") {
+          const recipient = storage.getUser(data.toUserId);
+          if (recipient && recipient.role === "patient") {
+            await sendNewMessageEmail(recipient.email, recipient.firstName, data.content);
+          }
+        }
+      } catch (emailErr) {
+        console.error("Message notification email failed:", emailErr);
+      }
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }

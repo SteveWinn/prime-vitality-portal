@@ -98,6 +98,8 @@ const addColumnIfNotExists = (table: string, column: string, definition: string)
   }
 };
 addColumnIfNotExists("lab_results", "pdf_filename", "TEXT");
+addColumnIfNotExists("users", "reset_token", "TEXT");
+addColumnIfNotExists("users", "reset_token_expiry", "TEXT");
 
 // Seed admin account if not exists
 const adminExists = db.select().from(users).where(eq(users.email, "admin@myprimevitality.com")).get();
@@ -117,6 +119,10 @@ export interface IStorage {
   // Users
   getUserById(id: number): User | undefined;
   getUserByEmail(email: string): User | undefined;
+  storeResetToken(userId: number, token: string, expiry: string): void;
+  getUserByResetToken(token: string): User | undefined;
+  clearResetToken(userId: number): void;
+  getUserByStripeCustomerId(customerId: string): User | undefined;
   createUser(data: Omit<InsertUser, "role"> & { role?: string }): User;
   updateUser(id: number, data: Partial<User>): User | undefined;
   getAllPatients(): User[];
@@ -150,6 +156,18 @@ export class Storage implements IStorage {
 
   getUserByEmail(email: string) {
     return db.select().from(users).where(eq(users.email, email)).get();
+  }
+  storeResetToken(userId: number, token: string, expiry: string) {
+    db.update(users).set({ resetToken: token, resetTokenExpiry: expiry }).where(eq(users.id, userId)).run();
+  }
+  getUserByResetToken(token: string) {
+    return db.select().from(users).where(eq(users.resetToken, token)).get();
+  }
+  clearResetToken(userId: number) {
+    db.update(users).set({ resetToken: null, resetTokenExpiry: null }).where(eq(users.id, userId)).run();
+  }
+  getUserByStripeCustomerId(customerId: string) {
+    return db.select().from(users).where(eq(users.stripeCustomerId, customerId)).get();
   }
 
   createUser(data: any): User {

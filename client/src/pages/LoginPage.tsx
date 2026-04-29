@@ -134,7 +134,7 @@ export default function LoginPage({ onLogin }: { onLogin: (token: string, user: 
 
             <div className="mt-2 text-right">
               <a
-                href={`mailto:care@myprimevitality.com?subject=Password%20Reset%20Request&body=Please%20reset%20the%20password%20for%20my%20account.%20My%20email%20is%3A%20`}
+                href="/#/forgot-password"
                 className="text-xs hover:underline"
                 style={{ color: "hsl(24 58% 51%)" }}
                 data-testid="link-forgot-password"

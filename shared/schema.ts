@@ -18,6 +18,8 @@ export const users = sqliteTable("users", {
   subscriptionStatus: text("subscription_status").default("inactive"), // "active" | "inactive" | "cancelled" | "past_due"
   subscriptionCurrentPeriodEnd: text("subscription_current_period_end"),
   doxyRoomUrl: text("doxy_room_url").default("https://doxy.me/primevitality"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: text("reset_token_expiry"),
   createdAt: text("created_at").notNull(),
 });
 

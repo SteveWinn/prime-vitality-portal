@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { useState } from "react";
 import { setToken, setCurrentUser, clearAuth, getCurrentUser } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import RegisterPage from "./pages/RegisterPage";
 import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
