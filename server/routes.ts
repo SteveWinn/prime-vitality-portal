@@ -379,9 +379,8 @@ export function registerRoutes(httpServer: any, app: Express) {
       const filename = req.file.filename + ".pdf";
       fs.renameSync(req.file.path, path.join(UPLOAD_DIR, filename));
 
-      // Infer date from parsed content or use today
-      const dateMatch = pdfText.match(/(?:collected|collection date|date collected)[:\s]*([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i);
-      const labDate = dateMatch ? dateMatch[1] : new Date().toISOString().split("T")[0];
+      // Use date parsed from PDF, or fall back to today
+      const labDate = report.dateCollected || new Date().toISOString().split("T")[0];
 
       const lab = storage.createLabResult({
         patientId,
