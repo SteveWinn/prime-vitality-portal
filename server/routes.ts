@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { registerSchema, loginSchema, insertMessageSchema, insertAppointmentSchema, insertTreatmentPlanSchema, insertLabResultSchema } from "@shared/schema";
-import { parseLabCorpPdf, markersToResultsJson } from "./labParser";
+import { parseLabCorpPdf, markersToResultsJson, markersToDisplayObject } from "./labParser";
 import {
   sendPasswordResetEmail,
   sendLabUploadedEmail,
@@ -369,20 +369,9 @@ export function registerRoutes(httpServer: any, app: Express) {
       // Read the file buffer
       const fileBuffer = fs.readFileSync(req.file.path);
 
-      // Parse with pdf-parse
-      let pdfText = "";
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
-        const parsed = await pdfParse(fileBuffer);
-        pdfText = parsed.text;
-      } catch (err: any) {
-        // Fallback: try raw buffer as string
-        pdfText = fileBuffer.toString("utf-8");
-      }
-
-      // Parse LabCorp markers
-      const report = parseLabCorpPdf(pdfText);
+      // Parse LabCorp markers from buffer (uses pdftotext internally)
+      const report = parseLabCorpPdf(fileBuffer);
+      console.log(`[Lab Parser] Found ${report.markers.length} markers for patient ${patientId}`);
       const resultsJson = markersToResultsJson(report.markers);
       const markers: Record<string, string> = JSON.parse(resultsJson);
 
@@ -404,7 +393,8 @@ export function registerRoutes(httpServer: any, app: Express) {
         pdfFilename: filename,
       } as any);
 
-      res.json({ lab, markers, pdfFilename: filename });
+      const displayMarkers = markersToDisplayObject(report.markers);
+      res.json({ lab, markers: displayMarkers, pdfFilename: filename });
       // Notify patient by email
       try {
         const patient = storage.getUser(patientId);
