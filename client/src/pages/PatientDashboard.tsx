@@ -407,7 +407,11 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                 <div className="space-y-4">
                   {labs.map(lab => {
                     let parsed: Record<string, string> = {};
-                    try { parsed = JSON.parse(lab.results); } catch {}
+                    try {
+                      const first = JSON.parse(lab.results);
+                      // Handle double-encoded JSON (old records stored as string-in-string)
+                      parsed = typeof first === "string" ? JSON.parse(first) : first;
+                    } catch {}
                     return (
                       <Card key={lab.id} data-testid={`card-lab-${lab.id}`} className="shadow-[0_1px_6px_rgba(15,21,35,0.07)] border-border/60">
                         <CardHeader className="pb-2">
@@ -416,9 +420,21 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
                               <CardTitle className="text-base" style={{ fontFamily: "'Cabinet Grotesk', sans-serif" }}>{lab.title}</CardTitle>
                               <CardDescription>{lab.date}</CardDescription>
                             </div>
-                            <Badge variant="outline" className="text-xs">
-                              <FileText className="w-3 h-3 mr-1" /> Report
-                            </Badge>
+                            {lab.pdfFilename ? (
+                              <a
+                                href={`${import.meta.env.VITE_API_URL || ""}/api/labs/pdf/${lab.pdfFilename}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                                  <FileText className="w-3 h-3 mr-1" /> Report
+                                </Badge>
+                              </a>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                <FileText className="w-3 h-3 mr-1" /> Report
+                              </Badge>
+                            )}
                           </div>
                         </CardHeader>
                         <CardContent>
@@ -468,7 +484,10 @@ export default function PatientDashboard({ user, onLogout, onUpdateUser }: Patie
             // Parse all lab results into { date, markerKey: value } objects
             const allPoints = (labs || []).flatMap(lab => {
               let parsed: Record<string, string> = {};
-              try { parsed = JSON.parse(lab.results); } catch {}
+              try {
+                const first = JSON.parse(lab.results);
+                parsed = typeof first === "string" ? JSON.parse(first) : first;
+              } catch {}
               return [{ date: lab.date, ...parsed }];
             }).sort((a, b) => a.date.localeCompare(b.date));
 

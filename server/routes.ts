@@ -388,7 +388,7 @@ export function registerRoutes(httpServer: any, app: Express) {
         title,
         date: labDate,
         notes,
-        results: JSON.stringify(resultsJson),
+        results: resultsJson,
         pdfFilename: filename,
       } as any);
 
